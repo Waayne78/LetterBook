@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+
+/* Tokens LetterBook (Tailwind @theme → utilitaires bg-primary, text-accent, etc.) */
+@theme {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  --font-display: 'Instrument Serif', ui-serif, Georgia, serif;
+  --color-primary: #0f172a;
+  --color-primary-foreground: #f8fafc;
+  --color-accent: #ea580c;
+  --color-accent-foreground: #ffffff;
+  --color-accent-soft: #fff7ed;
+  --color-accent-hover: #c2410c;
+  --color-link: #3730a3;
+  --color-link-hover: #312e81;
+  --color-muted: #64748b;
+  --color-surface: #ffffff;
+  --color-surface-warm: #faf8f5;
+  --color-page: #f4f2ee;
+  --color-navy-950: #0b1224;
+  --color-navy-900: #0f172a;
+}
+
+@layer base {
+  body {
+    @apply m-0 min-h-screen bg-fixed font-sans text-primary antialiased;
+    @apply bg-[linear-gradient(165deg,#f8fafc_0%,var(--color-page)_38%,#faf6f1_72%,#f1f5f9_100%)];
+  }
+}

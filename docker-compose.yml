@@ -1,0 +1,21 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: letterbook-mysql
+    environment:
+      MYSQL_DATABASE: letterbook
+      MYSQL_USER: letterbook
+      MYSQL_PASSWORD: letterbook
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - letterbook_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  letterbook_mysql_data:
