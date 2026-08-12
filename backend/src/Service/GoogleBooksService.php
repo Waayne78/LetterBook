@@ -161,7 +161,23 @@ final class GoogleBooksService
             'couverture' => \is_string($thumb) ? str_replace('http://', 'https://', $thumb) : null,
             'genre' => $genre,
             'isbn' => $isbn,
+            'nombrePages' => $this->extractPageCount($volumeInfo),
+            'datePublication' => isset($volumeInfo['publishedDate']) ? (string) $volumeInfo['publishedDate'] : null,
+            'editeur' => isset($volumeInfo['publisher']) ? (string) $volumeInfo['publisher'] : null,
+            'langue' => isset($volumeInfo['language']) ? (string) $volumeInfo['language'] : null,
         ];
+    }
+
+    /** @param array<string, mixed> $volumeInfo */
+    private function extractPageCount(array $volumeInfo): ?int
+    {
+        if (!isset($volumeInfo['pageCount']) || !is_numeric($volumeInfo['pageCount'])) {
+            return null;
+        }
+
+        $pages = (int) $volumeInfo['pageCount'];
+
+        return $pages > 0 ? $pages : null;
     }
 
     /** @return array<string, mixed>|null */

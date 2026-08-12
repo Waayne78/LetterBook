@@ -14,7 +14,7 @@ type FeedScopeTabsProps = {
 export function FeedScopeTabs({ value, onChange }: FeedScopeTabsProps) {
   return (
     <div
-      className="flex gap-1 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm"
+      className="inline-flex max-w-full gap-1 overflow-x-auto rounded-full bg-slate-100/90 p-1"
       role="tablist"
       aria-label="Fil d’actualité"
     >
@@ -27,10 +27,10 @@ export function FeedScopeTabs({ value, onChange }: FeedScopeTabsProps) {
           title={tab.title}
           aria-label={`${tab.label} — ${tab.title}`}
           onClick={() => onChange(tab.key)}
-          className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+          className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
             value === tab.key
               ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'text-slate-600 hover:bg-slate-50'
+              : 'text-slate-600 hover:bg-white/70 hover:text-slate-900'
           }`}
         >
           {tab.label}

@@ -12,6 +12,8 @@ use App\Entity\User;
 
 final class ApiNormalizer
 {
+    private const DELETED_USER_PSEUDO = 'Utilisateur supprimé';
+
     /** @return array<string, mixed> */
     public function userPublic(User $user): array
     {
@@ -22,6 +24,22 @@ final class ApiNormalizer
             'bio' => $user->getBio(),
             'dateCreation' => $user->getDateCreation()->format(\DateTimeInterface::ATOM),
         ];
+    }
+
+    /** @return array<string, mixed> */
+    public function userPublicOrDeleted(?User $user): ?array
+    {
+        if ($user === null) {
+            return [
+                'id' => null,
+                'pseudo' => self::DELETED_USER_PSEUDO,
+                'photo' => null,
+                'bio' => null,
+                'dateCreation' => null,
+            ];
+        }
+
+        return $this->userPublic($user);
     }
 
     /** @return array<string, mixed> */
@@ -47,6 +65,33 @@ final class ApiNormalizer
             'genre' => $livre->getGenre(),
             'isbn' => $livre->getIsbn(),
             'externalId' => $livre->getExternalId(),
+            'nombrePages' => $livre->getNombrePages(),
+            'datePublication' => $livre->getDatePublication(),
+            'editeur' => $livre->getEditeur(),
+            'langue' => $livre->getLangue(),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $parsed
+     *
+     * @return array<string, mixed>
+     */
+    public function livreFromParsed(array $parsed, ?string $volumeId = null): array
+    {
+        return [
+            'id' => null,
+            'titre' => isset($parsed['titre']) && \is_string($parsed['titre']) ? $parsed['titre'] : '',
+            'auteur' => isset($parsed['auteur']) && \is_string($parsed['auteur']) ? $parsed['auteur'] : '',
+            'resume' => isset($parsed['resume']) && \is_string($parsed['resume']) ? $parsed['resume'] : null,
+            'couverture' => isset($parsed['couverture']) && \is_string($parsed['couverture']) ? $parsed['couverture'] : null,
+            'genre' => isset($parsed['genre']) && \is_string($parsed['genre']) ? $parsed['genre'] : null,
+            'isbn' => isset($parsed['isbn']) && \is_string($parsed['isbn']) ? $parsed['isbn'] : null,
+            'externalId' => $volumeId ?? (isset($parsed['googleVolumeId']) && \is_string($parsed['googleVolumeId']) ? $parsed['googleVolumeId'] : null),
+            'nombrePages' => isset($parsed['nombrePages']) && is_numeric($parsed['nombrePages']) ? (int) $parsed['nombrePages'] : null,
+            'datePublication' => isset($parsed['datePublication']) && \is_string($parsed['datePublication']) ? $parsed['datePublication'] : null,
+            'editeur' => isset($parsed['editeur']) && \is_string($parsed['editeur']) ? $parsed['editeur'] : null,
+            'langue' => isset($parsed['langue']) && \is_string($parsed['langue']) ? $parsed['langue'] : null,
         ];
     }
 
@@ -62,7 +107,7 @@ final class ApiNormalizer
             'datePublication' => $avis->getDatePublication()->format(\DateTimeInterface::ATOM),
             'livreId' => $livre?->getId(),
             'livre' => $livre ? $this->livre($livre) : null,
-            'user' => $user ? $this->userPublic($user) : null,
+            'user' => $this->userPublicOrDeleted($user),
             'likesCount' => $avis->getLikes()->count(),
             'commentsCount' => $avis->getCommentaires()->count(),
         ];
@@ -98,7 +143,7 @@ final class ApiNormalizer
             'id' => $commentaire->getId(),
             'contenu' => $commentaire->getContenu(),
             'datePublication' => $commentaire->getDatePublication()->format(\DateTimeInterface::ATOM),
-            'user' => $user ? $this->userPublic($user) : null,
+            'user' => $this->userPublicOrDeleted($user),
             'avisId' => $commentaire->getAvis()?->getId(),
         ];
     }
