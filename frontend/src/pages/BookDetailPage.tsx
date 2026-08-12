@@ -28,10 +28,8 @@ export function BookDetailPage() {
     sortedReviews,
     reviewSort,
     setReviewSort,
-    message,
     addingLibrary,
     updatingLibrary,
-    shareFeedback,
     commentDrafts,
     setCommentDrafts,
     addToLibrary,
@@ -42,6 +40,8 @@ export function BookDetailPage() {
     deleteReview,
     toggleLike,
     sendComment,
+    reportReview,
+    reportComment,
     shareBook,
   } = useBookDetail(id, volumeId)
 
@@ -73,7 +73,7 @@ export function BookDetailPage() {
   )
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 pb-12">
+    <div className="mx-auto max-w-6xl space-y-6 pb-12">
       <nav aria-label="Fil d'Ariane" className="text-sm text-muted">
         {breadcrumbFrom}
         <span className="mx-2 text-slate-300">/</span>
@@ -92,18 +92,11 @@ export function BookDetailPage() {
         myLibrary={data.myLibrary}
         addingLibrary={addingLibrary}
         updatingLibrary={updatingLibrary}
-        onAddToLibrary={(s) => void addToLibrary(s)}
+        onAddToLibrary={(s, progression) => void addToLibrary(s, progression ?? null)}
         onUpdateLibrary={(p) => void updateLibrary(p)}
         onRemoveFromLibrary={() => void removeFromLibrary()}
         onShare={() => void shareBook()}
-        shareFeedback={shareFeedback}
       />
-
-      {message && (
-        <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800" role="status">
-          {message}
-        </p>
-      )}
 
       {isPreview && (
         <div className="rounded-2xl border border-indigo-100 bg-indigo-50/80 px-4 py-3 text-sm text-indigo-950">
@@ -111,96 +104,91 @@ export function BookDetailPage() {
         </div>
       )}
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_280px]">
-        <div className="min-w-0 space-y-8">
-          <BookDetailSummary resume={data.livre.resume} />
+      <BookDetailSummary resume={data.livre.resume} />
 
-          {!isPreview && (
-            <section className="rounded-2xl border border-slate-200 bg-white p-6">
-              <h2 className="text-lg font-semibold text-slate-900">Notes de la communauté</h2>
-              <div className="mt-4">
-                <NoteDistribution
-                  distribution={data.noteDistribution}
-                  average={data.stats.noteMoyenne}
-                  totalReviews={data.stats.nombreAvis}
-                />
-              </div>
-            </section>
-          )}
-
-          {user && !isPreview && (
-            <ReviewComposer
-              existingReview={myReview}
-              message={message}
-              onSubmit={submitReview}
-              onUpdate={updateReview}
-              onDelete={deleteReview}
+      {!isPreview && (
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-900">Notes de la communauté</h2>
+          <div className="mt-4">
+            <NoteDistribution
+              distribution={data.noteDistribution}
+              average={data.stats.noteMoyenne}
+              totalReviews={data.stats.nombreAvis}
             />
-          )}
+          </div>
+        </section>
+      )}
 
-          <section className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-xl font-semibold text-primary">Avis</h2>
-              {!isPreview && data.avis.length > 0 && (
-                <div className="flex rounded-xl border border-slate-200 p-0.5" role="tablist" aria-label="Trier les avis">
-                  {sortTabs.map((tab) => (
-                    <button
-                      key={tab.key}
-                      type="button"
-                      role="tab"
-                      aria-selected={reviewSort === tab.key}
-                      onClick={() => setReviewSort(tab.key)}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                        reviewSort === tab.key
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+      {user && !isPreview && (
+        <ReviewComposer
+          existingReview={myReview}
+          onSubmit={submitReview}
+          onUpdate={updateReview}
+          onDelete={deleteReview}
+        />
+      )}
+
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold text-primary">Avis</h2>
+          {!isPreview && data.avis.length > 0 && (
+            <div className="flex rounded-xl border border-slate-200 p-0.5" role="tablist" aria-label="Trier les avis">
+              {sortTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={reviewSort === tab.key}
+                  onClick={() => setReviewSort(tab.key)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                    reviewSort === tab.key
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
-
-            {sortedReviews.map((a) => (
-              <ReviewCard
-                key={a.id}
-                review={a}
-                isLoggedIn={!!user}
-                commentDraft={commentDrafts[a.id] ?? ''}
-                onCommentDraftChange={(v) => setCommentDrafts((d) => ({ ...d, [a.id]: v }))}
-                onToggleLike={() => void toggleLike(a.id)}
-                onSendComment={() => void sendComment(a.id)}
-              />
-            ))}
-
-            {data.avis.length === 0 && !isPreview && (
-              <EmptyState
-                icon={<EmptyStateIconChat />}
-                title="Pas encore d’avis"
-                description="Soyez le premier à partager votre avis sur ce livre."
-                action={
-                  user ? (
-                    <p className="text-sm text-slate-600">Utilisez le formulaire ci-dessus pour publier.</p>
-                  ) : (
-                    <Link
-                      to="/login"
-                      className="inline-flex rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:opacity-95"
-                    >
-                      Se connecter pour avis
-                    </Link>
-                  )
-                }
-              />
-            )}
-          </section>
+          )}
         </div>
 
-        <div className="lg:sticky lg:top-24 lg:self-start">
-          <RelatedBooks books={data.related} />
-        </div>
-      </div>
+        {sortedReviews.map((a) => (
+          <ReviewCard
+            key={a.id}
+            review={a}
+            isLoggedIn={!!user}
+            commentDraft={commentDrafts[a.id] ?? ''}
+            onCommentDraftChange={(v) => setCommentDrafts((d) => ({ ...d, [a.id]: v }))}
+            onToggleLike={() => void toggleLike(a.id)}
+            onSendComment={() => void sendComment(a.id)}
+            onReportReview={() => reportReview(a.id)}
+            onReportComment={(commentId) => reportComment(commentId)}
+          />
+        ))}
+
+        {data.avis.length === 0 && !isPreview && (
+          <EmptyState
+            icon={<EmptyStateIconChat />}
+            title="Pas encore d’avis"
+            description="Soyez le premier à partager votre avis sur ce livre."
+            action={
+              user ? (
+                <p className="text-sm text-slate-600">Utilisez le formulaire ci-dessus pour publier.</p>
+              ) : (
+                <Link
+                  to="/login"
+                  className="inline-flex rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:opacity-95"
+                >
+                  Se connecter pour avis
+                </Link>
+              )
+            }
+          />
+        )}
+      </section>
+
+      <RelatedBooks books={data.related} />
     </div>
   )
 }

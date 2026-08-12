@@ -84,6 +84,7 @@ final class LivreImportServiceTest extends TestCase
             ->method('toArray')
             ->with(false)
             ->willReturn([
+                'id' => 'vol-42',
                 'volumeInfo' => [
                     'title' => 'Les Miserables',
                     'authors' => ['Victor Hugo'],
@@ -93,6 +94,10 @@ final class LivreImportServiceTest extends TestCase
                     'industryIdentifiers' => [
                         ['type' => 'ISBN_13', 'identifier' => '9782070409181'],
                     ],
+                    'pageCount' => 1232,
+                    'publishedDate' => '1862-01',
+                    'publisher' => 'Librairie',
+                    'language' => 'fr',
                 ],
             ]);
 
@@ -117,6 +122,10 @@ final class LivreImportServiceTest extends TestCase
         self::assertSame('https://img.example/cover.jpg', $result->getCouverture());
         self::assertSame('Roman', $result->getGenre());
         self::assertSame('9782070409181', $result->getIsbn());
+        self::assertSame(1232, $result->getNombrePages());
+        self::assertSame('1862-01', $result->getDatePublication());
+        self::assertSame('Librairie', $result->getEditeur());
+        self::assertSame('fr', $result->getLangue());
     }
 }
 

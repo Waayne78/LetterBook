@@ -13,6 +13,7 @@ use App\Repository\BibliothequeRepository;
 use App\Repository\LivreRepository;
 use App\Service\ApiNormalizer;
 use App\Service\GoogleBooksService;
+use App\Service\LivreImportService;
 use App\Util\IsbnHelper;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -29,6 +30,7 @@ final class BookController extends AbstractController
         private readonly AvisRepository $avisRepository,
         private readonly BibliothequeRepository $bibliothequeRepository,
         private readonly GoogleBooksService $googleBooksService,
+        private readonly LivreImportService $livreImportService,
         private readonly ApiNormalizer $normalizer,
     ) {
     }
@@ -140,7 +142,8 @@ final class BookController extends AbstractController
     {
         $existing = $this->livreRepository->findOneBy(['externalId' => $volumeId]);
         if ($existing instanceof Livre) {
-            $payload = $this->buildBookPayload($existing);
+            $enriched = $this->livreImportService->enrichMetadataIfMissing($existing);
+            $payload = $this->buildBookPayload($enriched);
             $payload['preview'] = false;
             $payload['googleVolumeId'] = $volumeId;
 
@@ -161,16 +164,7 @@ final class BookController extends AbstractController
         $related = $this->buildRelatedBooks($genre, 0);
 
         return $this->json([
-            'livre' => [
-                'id' => null,
-                'titre' => $parsed['titre'],
-                'auteur' => $parsed['auteur'],
-                'resume' => $parsed['resume'],
-                'couverture' => $parsed['couverture'],
-                'genre' => $genre,
-                'isbn' => $parsed['isbn'],
-                'externalId' => $volumeId,
-            ],
+            'livre' => $this->normalizer->livreFromParsed($parsed, $volumeId),
             'stats' => [
                 'noteMoyenne' => null,
                 'nombreAvis' => 0,
@@ -198,6 +192,8 @@ final class BookController extends AbstractController
     /** @return array<string, mixed> */
     private function buildBookPayload(Livre $livre): array
     {
+        $livre = $this->livreImportService->enrichMetadataIfMissing($livre);
+
         $viewer = $this->getUser();
         $viewerUser = $viewer instanceof User ? $viewer : null;
 

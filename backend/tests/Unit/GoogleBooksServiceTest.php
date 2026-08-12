@@ -60,6 +60,10 @@ final class GoogleBooksServiceTest extends TestCase
                             'industryIdentifiers' => [
                                 ['type' => 'ISBN_13', 'identifier' => '9782070368228'],
                             ],
+                            'pageCount' => 512,
+                            'publishedDate' => '1862',
+                            'publisher' => 'Gallimard',
+                            'language' => 'fr',
                         ],
                     ],
                 ],
@@ -73,6 +77,10 @@ final class GoogleBooksServiceTest extends TestCase
         self::assertSame(40, $result['pageSize']);
         self::assertSame('g-1', $result['items'][0]['googleVolumeId']);
         self::assertSame('https://img.example/a.jpg', $result['items'][0]['couverture']);
+        self::assertSame(512, $result['items'][0]['nombrePages']);
+        self::assertSame('1862', $result['items'][0]['datePublication']);
+        self::assertSame('Gallimard', $result['items'][0]['editeur']);
+        self::assertSame('fr', $result['items'][0]['langue']);
     }
 
     public function testFetchVolumeReturnsNullOnRequestFailure(): void

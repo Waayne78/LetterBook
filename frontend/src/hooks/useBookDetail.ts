@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../auth/useAuth'
+import { useToast } from '../components/ui/useToast'
 import type { BookDetailPayload, NoteDistribution, ReviewSort } from '../types/bookDetail'
 
 const emptyDistribution = (): NoteDistribution => ({
@@ -15,14 +16,13 @@ const emptyDistribution = (): NoteDistribution => ({
 export function useBookDetail(id: string | undefined, volumeId: string | undefined) {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { toast } = useToast()
   const [data, setData] = useState<BookDetailPayload | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [reviewSort, setReviewSort] = useState<ReviewSort>('recent')
-  const [message, setMessage] = useState<string | null>(null)
   const [addingLibrary, setAddingLibrary] = useState(false)
   const [updatingLibrary, setUpdatingLibrary] = useState(false)
-  const [shareFeedback, setShareFeedback] = useState<string | null>(null)
   const [commentDrafts, setCommentDrafts] = useState<Record<number, string>>({})
 
   const reload = useCallback(async () => {
@@ -73,7 +73,7 @@ export function useBookDetail(id: string | undefined, volumeId: string | undefin
     if (!data) {
       return []
     }
-    const list = [...data.avis]
+    const list = data.avis.filter((a) => !user || a.user?.id !== user.id)
     if (reviewSort === 'rating') {
       return list.sort((a, b) => b.note - a.note || b.id - a.id)
     }
@@ -82,30 +82,33 @@ export function useBookDetail(id: string | undefined, volumeId: string | undefin
       const db = b.datePublication ? new Date(b.datePublication).getTime() : 0
       return db - da
     })
-  }, [data, reviewSort])
+  }, [data, reviewSort, user])
 
   const addToLibrary = useCallback(
-    async (statut: string) => {
+    async (statut: string, progression: number | null = null) => {
       if (!user) {
         navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`)
         return
       }
       setAddingLibrary(true)
-      setMessage(null)
       try {
         const payload = googleVolumeId
-          ? { googleVolumeId, statut, progression: null }
-          : { livreId, statut, progression: null }
+          ? { googleVolumeId, statut, progression }
+          : { livreId, statut, progression }
         await api.post('/library', payload)
         await reload()
-        setMessage('Ajouté à votre bibliothèque.')
+        toast({ title: 'Ajouté à votre bibliothèque.' })
       } catch {
-        setMessage('Impossible d’ajouter ce livre à la bibliothèque.')
+        toast({
+          title: 'Ajout impossible',
+          description: 'Le livre n’a pas pu être ajouté à votre bibliothèque.',
+          variant: 'error',
+        })
       } finally {
         setAddingLibrary(false)
       }
     },
-    [user, googleVolumeId, livreId, navigate, reload],
+    [user, googleVolumeId, livreId, navigate, reload, toast],
   )
 
   const updateLibrary = useCallback(
@@ -118,13 +121,14 @@ export function useBookDetail(id: string | undefined, volumeId: string | undefin
       try {
         await api.patch(`/library/${entryId}`, patch)
         await reload()
+        toast({ title: 'Bibliothèque mise à jour.' })
       } catch {
-        setMessage('Impossible de mettre à jour la bibliothèque.')
+        toast({ title: 'Mise à jour impossible', variant: 'error' })
       } finally {
         setUpdatingLibrary(false)
       }
     },
-    [data?.myLibrary?.id, reload],
+    [data?.myLibrary?.id, reload, toast],
   )
 
   const removeFromLibrary = useCallback(async () => {
@@ -139,43 +143,45 @@ export function useBookDetail(id: string | undefined, volumeId: string | undefin
     try {
       await api.delete(`/library/${entryId}`)
       await reload()
-      setMessage('Livre retiré de votre bibliothèque.')
+      toast({ title: 'Livre retiré de votre bibliothèque.', variant: 'info' })
     } catch {
-      setMessage('Impossible de retirer ce livre.')
+      toast({ title: 'Suppression impossible', variant: 'error' })
     } finally {
       setUpdatingLibrary(false)
     }
-  }, [data?.myLibrary?.id, reload])
+  }, [data?.myLibrary?.id, reload, toast])
 
   const submitReview = useCallback(
     async (note: number, contenu: string) => {
       if (!Number.isFinite(livreId)) {
         return
       }
-      setMessage(null)
       try {
         await api.post('/reviews', { livreId, note, contenu })
         await reload()
-        setMessage('Avis publié.')
+        toast({ title: 'Avis publié.' })
       } catch {
-        setMessage('Impossible de publier (déjà un avis ?).')
+        toast({
+          title: 'Publication impossible',
+          description: 'Vous avez peut-être déjà publié un avis sur ce livre.',
+          variant: 'error',
+        })
       }
     },
-    [livreId, reload],
+    [livreId, reload, toast],
   )
 
   const updateReview = useCallback(
     async (reviewId: number, note: number, contenu: string) => {
-      setMessage(null)
       try {
         await api.patch(`/reviews/${reviewId}`, { note, contenu })
         await reload()
-        setMessage('Avis mis à jour.')
+        toast({ title: 'Avis mis à jour.' })
       } catch {
-        setMessage('Impossible de modifier l’avis.')
+        toast({ title: 'Modification impossible', variant: 'error' })
       }
     },
-    [reload],
+    [reload, toast],
   )
 
   const deleteReview = useCallback(
@@ -186,12 +192,12 @@ export function useBookDetail(id: string | undefined, volumeId: string | undefin
       try {
         await api.delete(`/reviews/${reviewId}`)
         await reload()
-        setMessage('Avis supprimé.')
+        toast({ title: 'Avis supprimé.', variant: 'info' })
       } catch {
-        setMessage('Impossible de supprimer l’avis.')
+        toast({ title: 'Suppression impossible', variant: 'error' })
       }
     },
-    [reload],
+    [reload, toast],
   )
 
   const toggleLike = useCallback(async (avisId: number) => {
@@ -211,9 +217,9 @@ export function useBookDetail(id: string | undefined, volumeId: string | undefin
         }
       })
     } catch {
-      /* ignore */
+        toast({ title: 'Impossible de mettre à jour le like', variant: 'error' })
     }
-  }, [])
+  }, [toast])
 
   const sendComment = useCallback(
     async (avisId: number) => {
@@ -221,12 +227,29 @@ export function useBookDetail(id: string | undefined, volumeId: string | undefin
       if (!text) {
         return
       }
-      await api.post(`/reviews/${avisId}/comments`, { contenu: text })
-      setCommentDrafts((d) => ({ ...d, [avisId]: '' }))
-      await reload()
+      try {
+        await api.post(`/reviews/${avisId}/comments`, { contenu: text })
+        setCommentDrafts((d) => ({ ...d, [avisId]: '' }))
+        await reload()
+        toast({ title: 'Commentaire publié.' })
+      } catch {
+        toast({
+          title: 'Envoi impossible',
+          description: 'Vérifiez la longueur du commentaire ou patientez quelques secondes.',
+          variant: 'error',
+        })
+      }
     },
-    [commentDrafts, reload],
+    [commentDrafts, reload, toast],
   )
+
+  const reportReview = useCallback(async (avisId: number) => {
+    await api.post(`/reviews/${avisId}/report`, { motif: 'Contenu inapproprié' })
+  }, [])
+
+  const reportComment = useCallback(async (commentId: number) => {
+    await api.post(`/comments/${commentId}/report`, { motif: 'Contenu inapproprié' })
+  }, [])
 
   const shareBook = useCallback(async () => {
     const url = window.location.href
@@ -234,22 +257,20 @@ export function useBookDetail(id: string | undefined, volumeId: string | undefin
     try {
       if (typeof navigator.share === 'function') {
         await navigator.share({ title, url })
-        setShareFeedback('Partagé.')
+        toast({ title: 'Livre partagé' })
       } else {
         await navigator.clipboard.writeText(url)
-        setShareFeedback('Lien copié.')
+        toast({ title: 'Lien copié' })
       }
-      setTimeout(() => setShareFeedback(null), 3000)
     } catch {
       try {
         await navigator.clipboard.writeText(url)
-        setShareFeedback('Lien copié.')
-        setTimeout(() => setShareFeedback(null), 3000)
+        toast({ title: 'Lien copié' })
       } catch {
-        setShareFeedback(null)
+        toast({ title: 'Partage impossible', variant: 'error' })
       }
     }
-  }, [data?.livre.titre])
+  }, [data?.livre.titre, toast])
 
   return {
     data,
@@ -261,10 +282,8 @@ export function useBookDetail(id: string | undefined, volumeId: string | undefin
     sortedReviews,
     reviewSort,
     setReviewSort,
-    message,
     addingLibrary,
     updatingLibrary,
-    shareFeedback,
     commentDrafts,
     setCommentDrafts,
     reload,
@@ -276,6 +295,8 @@ export function useBookDetail(id: string | undefined, volumeId: string | undefin
     deleteReview,
     toggleLike,
     sendComment,
+    reportReview,
+    reportComment,
     shareBook,
   }
 }

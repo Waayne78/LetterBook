@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Share2 } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, BookOpen, Loader2, Share2 } from "lucide-react";
 import type { BookLivre, MyLibraryEntry } from "../../types/bookDetail";
 import { BookDetailLibraryActions } from "./BookDetailLibraryActions";
+import { BookDetailMetaStrip } from "./BookDetailMetaStrip";
 import { RatingStars } from "./RatingStars";
 
 type BookDetailHeroProps = {
@@ -14,14 +15,13 @@ type BookDetailHeroProps = {
   myLibrary: MyLibraryEntry | null;
   addingLibrary: boolean;
   updatingLibrary: boolean;
-  onAddToLibrary: (statut: string) => void;
+  onAddToLibrary: (statut: string, progression?: number | null) => void;
   onUpdateLibrary: (patch: {
     statut?: string;
     progression?: number | null;
   }) => void;
   onRemoveFromLibrary: () => void;
   onShare: () => void;
-  shareFeedback: string | null;
 };
 
 export function BookDetailHero({
@@ -38,10 +38,27 @@ export function BookDetailHero({
   onUpdateLibrary,
   onRemoveFromLibrary,
   onShare,
-  shareFeedback,
 }: BookDetailHeroProps) {
   const cover = livre.couverture;
   const hasReviews = nombreAvis > 0;
+  const busy = addingLibrary || updatingLibrary;
+  const isWishlist = myLibrary?.statut === "a_lire";
+  const inLibrary = myLibrary != null && !preview;
+
+  function handleWishlistToggle() {
+    if (!isLoggedIn || busy) {
+      return;
+    }
+    if (isWishlist) {
+      onRemoveFromLibrary();
+      return;
+    }
+    if (inLibrary) {
+      onUpdateLibrary({ statut: "a_lire" });
+      return;
+    }
+    onAddToLibrary("a_lire");
+  }
 
   return (
     <section className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-surface-warm via-white to-white shadow-sm">
@@ -71,69 +88,84 @@ export function BookDetailHero({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              {preview && (
-                <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-900">
-                  Aperçu
-                </span>
-              )}
-              {libraryBadge && !preview && !myLibrary && (
-                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
-                  {libraryBadge}
-                </span>
-              )}
-            </div>
-            <div className="flex shrink-0 items-center gap-1">
+          <div className="absolute right-4 top-4 flex items-center gap-1 sm:right-6 sm:top-5 md:right-8 md:top-8">
+            {preview && (
+              <span className="mr-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-900">
+                Aperçu
+              </span>
+            )}
+            {libraryBadge && !preview && !myLibrary && (
+              <span className="mr-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+                {libraryBadge}
+              </span>
+            )}
+            {isLoggedIn ? (
               <button
                 type="button"
-                onClick={onShare}
-                title="Partager"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                onClick={handleWishlistToggle}
+                disabled={busy}
+                title={isWishlist ? "Retirer de À lire" : "Ajouter à lire"}
+                aria-pressed={isWishlist}
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60 ${
+                  isWishlist
+                    ? "bg-accent/10 text-accent hover:bg-accent/15"
+                    : "text-slate-500 hover:bg-slate-100 hover:text-primary"
+                }`}
               >
-                <Share2 className="h-4 w-4" aria-hidden />
-                <span className="sr-only">Partager</span>
+                {busy && (isWishlist || !inLibrary) ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                ) : isWishlist ? (
+                  <BookmarkCheck className="h-4 w-4" aria-hidden />
+                ) : (
+                  <Bookmark className="h-4 w-4" aria-hidden />
+                )}
+                <span className="sr-only">
+                  {isWishlist ? "Retirer de À lire" : "Ajouter à lire"}
+                </span>
               </button>
+            ) : (
               <Link
-                to="/search"
-                title="Retour à la recherche"
+                to={`/login?redirect=${encodeURIComponent(window.location.pathname)}`}
+                title="Connectez-vous pour ajouter à lire"
                 className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                <ArrowLeft className="h-4 w-4" aria-hidden />
-                <span className="sr-only">Recherche</span>
+                <Bookmark className="h-4 w-4" aria-hidden />
+                <span className="sr-only">Ajouter à lire</span>
               </Link>
-            </div>
-          </div>
-          {shareFeedback && (
-            <p
-              className="-mt-1 text-right text-[11px] font-medium text-emerald-700"
-              role="status"
+            )}
+            <button
+              type="button"
+              onClick={onShare}
+              title="Partager"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              {shareFeedback}
-            </p>
-          )}
+              <Share2 className="h-4 w-4" aria-hidden />
+              <span className="sr-only">Partager</span>
+            </button>
+            <Link
+              to="/search"
+              title="Retour à la recherche"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden />
+              <span className="sr-only">Recherche</span>
+            </Link>
+          </div>
 
-          <h1 className="mt-2 text-center text-2xl font-bold leading-tight tracking-tight text-slate-900 sm:text-3xl md:text-left">
+          <h1 className="text-center text-2xl font-bold leading-tight tracking-tight text-slate-900 sm:text-3xl md:text-left">
             {livre.titre}
           </h1>
-          <p className="mt-1 text-center text-base text-slate-600 md:text-left">
-            {livre.auteur}
-          </p>
-
-          {(livre.genre || livre.isbn) && (
-            <div className="mt-3 flex flex-wrap justify-center gap-2 md:justify-start">
-              {livre.genre && (
-                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
-                  {livre.genre}
+          <div className="mt-1 flex flex-wrap items-center justify-center gap-2 md:justify-start">
+            <p className="text-base text-slate-600">{livre.auteur}</p>
+            {livre.nombrePages != null && livre.nombrePages > 0 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50/95 px-2.5 py-1 text-xs font-semibold text-amber-950 ring-1 ring-amber-200/70">
+                <BookOpen className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                <span className="tabular-nums">
+                  {livre.nombrePages.toLocaleString("fr-FR")} pages
                 </span>
-              )}
-              {livre.isbn && (
-                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 font-mono text-[11px] text-slate-500">
-                  ISBN {livre.isbn}
-                </span>
-              )}
-            </div>
-          )}
+              </span>
+            )}
+          </div>
 
           <div className="mt-3 flex flex-wrap items-center justify-center gap-2 md:justify-start">
             <RatingStars value={noteMoyenne ?? 0} size="md" />
@@ -149,8 +181,11 @@ export function BookDetailHero({
             )}
           </div>
 
-          <div className="mt-4 rounded-2xl bg-accent-soft/80 p-4 ring-1 ring-orange-100/80">
+          <BookDetailMetaStrip livre={livre} />
+
+          <div className="mt-4 border-t border-slate-100 pt-4">
             <BookDetailLibraryActions
+              livre={livre}
               isPreview={preview}
               isLoggedIn={isLoggedIn}
               myLibrary={myLibrary}

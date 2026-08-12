@@ -41,6 +41,18 @@ class Livre
     #[ORM\Column(length: 64, nullable: true, unique: true)]
     private ?string $externalId = null;
 
+    #[ORM\Column(name: 'nombre_pages', nullable: true)]
+    private ?int $nombrePages = null;
+
+    #[ORM\Column(name: 'date_publication', length: 32, nullable: true)]
+    private ?string $datePublication = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $editeur = null;
+
+    #[ORM\Column(length: 16, nullable: true)]
+    private ?string $langue = null;
+
     #[ORM\OneToMany(targetEntity: Avis::class, mappedBy: 'livre', orphanRemoval: true)]
     private Collection $avis;
 
@@ -138,6 +150,54 @@ class Livre
     public function setExternalId(?string $externalId): static
     {
         $this->externalId = $externalId;
+
+        return $this;
+    }
+
+    public function getNombrePages(): ?int
+    {
+        return $this->nombrePages;
+    }
+
+    public function setNombrePages(?int $nombrePages): static
+    {
+        $this->nombrePages = $nombrePages;
+
+        return $this;
+    }
+
+    public function getDatePublication(): ?string
+    {
+        return $this->datePublication;
+    }
+
+    public function setDatePublication(?string $datePublication): static
+    {
+        $this->datePublication = $datePublication;
+
+        return $this;
+    }
+
+    public function getEditeur(): ?string
+    {
+        return $this->editeur;
+    }
+
+    public function setEditeur(?string $editeur): static
+    {
+        $this->editeur = $editeur;
+
+        return $this;
+    }
+
+    public function getLangue(): ?string
+    {
+        return $this->langue;
+    }
+
+    public function setLangue(?string $langue): static
+    {
+        $this->langue = $langue;
 
         return $this;
     }

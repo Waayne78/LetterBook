@@ -7,6 +7,10 @@ export type BookLivre = {
   genre: string | null
   isbn: string | null
   externalId?: string | null
+  nombrePages?: number | null
+  datePublication?: string | null
+  editeur?: string | null
+  langue?: string | null
 }
 
 export type MyLibraryEntry = {
