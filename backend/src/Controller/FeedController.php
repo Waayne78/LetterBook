@@ -7,8 +7,8 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Repository\AvisRepository;
 use App\Repository\UserFollowRepository;
-use App\Service\SocialService;
 use App\Service\FeedTimelineService;
+use App\Service\SocialService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -30,13 +30,13 @@ final class FeedController extends AbstractController
     {
         $scope = $request->query->getString('scope', 'community');
         $cursor = $request->query->getString('cursor');
-        $cursor = $cursor !== '' ? $cursor : null;
+        $cursor = '' !== $cursor ? $cursor : null;
 
         $viewer = $this->getUser();
         $viewerUser = $viewer instanceof User ? $viewer : null;
 
         if (\in_array($scope, ['following', 'friends'], true)) {
-            if ($viewerUser === null) {
+            if (null === $viewerUser) {
                 return $this->json(['error' => 'Connectez-vous pour voir ce fil.'], Response::HTTP_UNAUTHORIZED);
             }
         }
@@ -71,7 +71,7 @@ final class FeedController extends AbstractController
     {
         $ids = $this->followRepository->findFollowingIds($user);
         $selfId = $user->getId();
-        if ($selfId !== null && !\in_array($selfId, $ids, true)) {
+        if (null !== $selfId && !\in_array($selfId, $ids, true)) {
             $ids[] = $selfId;
         }
 

@@ -53,6 +53,15 @@ final class AdminApiTest extends ApiTestCase
         self::assertResponseIsSuccessful();
         $body = json_decode($client->getResponse()->getContent() ?: '', true);
         self::assertSame(true, $body['suspended'] ?? null);
+
+        $client->request(
+            'PATCH',
+            '/api/admin/users/'.$admin['userId'].'/suspend',
+            [],
+            [],
+            $this->authHeaders($token),
+            json_encode(['suspended' => true], JSON_THROW_ON_ERROR),
+        );
+        self::assertResponseStatusCodeSame(400);
     }
 }
-

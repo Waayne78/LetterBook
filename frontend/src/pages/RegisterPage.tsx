@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
+import { getCsrfToken } from '../lib/csrf'
 import { useAuth } from '../auth/useAuth'
 
 export function RegisterPage() {
@@ -22,12 +23,17 @@ export function RegisterPage() {
     }
     setPending(true)
     try {
-      await api.post('/register', {
-        pseudo,
-        email,
-        password,
-        consentementRgpd: true,
-      })
+      const csrfToken = await getCsrfToken()
+      await api.post(
+        '/register',
+        {
+          pseudo,
+          email,
+          password,
+          consentementRgpd: true,
+        },
+        { headers: { 'X-CSRF-Token': csrfToken } },
+      )
       await login(email, password)
       navigate('/library')
     } catch (err: unknown) {

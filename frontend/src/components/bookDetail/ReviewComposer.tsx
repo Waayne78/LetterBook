@@ -5,7 +5,6 @@ import { RatingStars } from './RatingStars'
 type ReviewComposerProps = {
   existingReview: BookReview | null
   disabled?: boolean
-  message: string | null
   onSubmit: (note: number, contenu: string) => Promise<void>
   onUpdate: (reviewId: number, note: number, contenu: string) => Promise<void>
   onDelete: (reviewId: number) => Promise<void>
@@ -14,7 +13,6 @@ type ReviewComposerProps = {
 export function ReviewComposer({
   existingReview,
   disabled,
-  message,
   onSubmit,
   onUpdate,
   onDelete,
@@ -102,11 +100,6 @@ export function ReviewComposer({
             className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
           />
         </label>
-        {message && (
-          <p className="text-sm text-emerald-700" role="status">
-            {message}
-          </p>
-        )}
         <div className="flex flex-wrap gap-2">
           <button
             type="submit"

@@ -1,0 +1,152 @@
+name: LetterBook CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: PHP CS Fixer + PHPStan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+          extensions: ctype, iconv, mbstring, sqlite3, pdo_sqlite
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: backend/vendor
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: PHP CS Fixer
+        run: vendor/bin/php-cs-fixer fix --dry-run --diff
+
+      - name: Warm Symfony cache (PHPStan container)
+        run: php bin/console cache:warmup --env=dev --no-interaction
+        env:
+          APP_ENV: dev
+          APP_SECRET: ci_secret_for_phpstan
+          DATABASE_URL: sqlite:///%kernel.project_dir%/var/ci.db
+          JWT_SECRET_KEY: '%kernel.project_dir%/config/jwt/private.pem'
+          JWT_PUBLIC_KEY: '%kernel.project_dir%/config/jwt/public.pem'
+          JWT_PASSPHRASE: change_me_dev_jwt_passphrase
+          CORS_ALLOW_ORIGIN: '^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$'
+
+      - name: PHPStan level 5
+        run: vendor/bin/phpstan analyse --memory-limit=512M
+
+  phpunit:
+    name: PHPUnit
+    needs: lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+          extensions: ctype, iconv, mbstring, sqlite3, pdo_sqlite
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: backend/vendor
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Generate JWT keypair
+        run: php bin/console lexik:jwt:generate-keypair --skip-if-exists --no-interaction
+        env:
+          APP_ENV: test
+          APP_SECRET: '$ecretf0rt3st'
+          DATABASE_URL: sqlite:///%kernel.project_dir%/var/test.db
+          JWT_SECRET_KEY: '%kernel.project_dir%/config/jwt/private.pem'
+          JWT_PUBLIC_KEY: '%kernel.project_dir%/config/jwt/public.pem'
+          JWT_PASSPHRASE: change_me_dev_jwt_passphrase
+
+      - name: Prepare test database
+        run: |
+          mkdir -p var
+          php bin/console doctrine:schema:drop --force --env=test --no-interaction
+          php bin/console doctrine:schema:create --env=test --no-interaction
+        env:
+          APP_ENV: test
+          APP_SECRET: '$ecretf0rt3st'
+          DATABASE_URL: sqlite:///%kernel.project_dir%/var/test.db
+          JWT_SECRET_KEY: '%kernel.project_dir%/config/jwt/private.pem'
+          JWT_PUBLIC_KEY: '%kernel.project_dir%/config/jwt/public.pem'
+          JWT_PASSPHRASE: change_me_dev_jwt_passphrase
+          CORS_ALLOW_ORIGIN: '^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$'
+          GOOGLE_BOOKS_API_KEY: ''
+
+      - name: Run PHPUnit
+        run: php bin/phpunit
+        env:
+          APP_ENV: test
+          APP_SECRET: '$ecretf0rt3st'
+          DATABASE_URL: sqlite:///%kernel.project_dir%/var/test.db
+          JWT_SECRET_KEY: '%kernel.project_dir%/config/jwt/private.pem'
+          JWT_PUBLIC_KEY: '%kernel.project_dir%/config/jwt/public.pem'
+          JWT_PASSPHRASE: change_me_dev_jwt_passphrase
+          CORS_ALLOW_ORIGIN: '^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$'
+          GOOGLE_BOOKS_API_KEY: ''
+
+  playwright:
+    name: Playwright smoke
+    needs: lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Run smoke tests
+        run: npm run test:e2e
+        env:
+          CI: true
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7

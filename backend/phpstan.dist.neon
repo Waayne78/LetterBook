@@ -1,0 +1,15 @@
+parameters:
+    level: 5
+    paths:
+        - src
+    treatPhpDocTypesAsCertain: false
+    symfony:
+        containerXmlPath: '%rootDir%/../../../var/cache/dev/App_KernelDevDebugContainer.xml'
+    ignoreErrors:
+        # IDs Doctrine assignés par l'ORM, jamais manuellement
+        -
+            identifier: property.unusedType
+            path: src/Entity/*
+        -
+            identifier: return.unusedType
+            path: src/Service/ApiNormalizer.php

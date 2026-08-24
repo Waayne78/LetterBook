@@ -29,7 +29,7 @@ class BibliothequeRepository extends ServiceEntityRepository
             ->setParameter('user', $user)
             ->orderBy('b.id', 'ASC');
 
-        if ($statut !== null) {
+        if (null !== $statut) {
             $qb->andWhere('b.statut = :statut')->setParameter('statut', $statut);
         }
 
@@ -50,7 +50,7 @@ class BibliothequeRepository extends ServiceEntityRepository
      */
     public function findRecentActivityForUserIds(array $userIds, int $limit = 40, ?\DateTimeImmutable $before = null): array
     {
-        if ($userIds === []) {
+        if ([] === $userIds) {
             return [];
         }
 
@@ -60,7 +60,7 @@ class BibliothequeRepository extends ServiceEntityRepository
             ->orderBy('b.updatedAt', 'DESC')
             ->setMaxResults($limit);
 
-        if ($before !== null) {
+        if (null !== $before) {
             $qb->andWhere('b.updatedAt < :before')->setParameter('before', $before);
         }
 

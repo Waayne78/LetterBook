@@ -39,7 +39,7 @@ final class ReviewController extends AbstractController
     public function createReview(Request $request): JsonResponse
     {
         $user = $this->requireUser();
-        if ($user === null) {
+        if (null === $user) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
 
@@ -60,7 +60,7 @@ final class ReviewController extends AbstractController
         }
 
         $contenu = isset($data['contenu']) ? trim((string) $data['contenu']) : '';
-        if ($contenu === '') {
+        if ('' === $contenu) {
             return $this->json(['error' => 'Contenu requis.'], Response::HTTP_BAD_REQUEST);
         }
 
@@ -85,7 +85,7 @@ final class ReviewController extends AbstractController
     public function updateReview(int $id, Request $request): JsonResponse
     {
         $user = $this->requireUser();
-        if ($user === null) {
+        if (null === $user) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
 
@@ -101,13 +101,18 @@ final class ReviewController extends AbstractController
 
         if (isset($data['note'])) {
             $n = (int) $data['note'];
-            if ($n >= 1 && $n <= 5) {
-                $avis->setNote($n);
+            if ($n < 1 || $n > 5) {
+                return $this->json(['error' => 'La note doit être entre 1 et 5.'], Response::HTTP_BAD_REQUEST);
             }
+            $avis->setNote($n);
         }
 
         if (isset($data['contenu'])) {
-            $avis->setContenu(trim((string) $data['contenu']));
+            $contenu = trim((string) $data['contenu']);
+            if ('' === $contenu) {
+                return $this->json(['error' => 'Contenu requis.'], Response::HTTP_BAD_REQUEST);
+            }
+            $avis->setContenu($contenu);
         }
 
         $this->entityManager->flush();
@@ -119,7 +124,7 @@ final class ReviewController extends AbstractController
     public function deleteReview(int $id): JsonResponse
     {
         $user = $this->requireUser();
-        if ($user === null) {
+        if (null === $user) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
 
@@ -138,7 +143,7 @@ final class ReviewController extends AbstractController
     public function addComment(int $id, Request $request): JsonResponse
     {
         $user = $this->requireUser();
-        if ($user === null) {
+        if (null === $user) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
 
@@ -153,8 +158,20 @@ final class ReviewController extends AbstractController
         }
 
         $contenu = isset($data['contenu']) ? trim((string) $data['contenu']) : '';
-        if ($contenu === '') {
+        if ('' === $contenu) {
             return $this->json(['error' => 'Contenu requis.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        if (mb_strlen($contenu) > 500) {
+            return $this->json(['error' => 'Le commentaire ne peut pas dépasser 500 caractères.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $lastComment = $this->commentaireRepository->findLastByUser((int) $user->getId());
+        if ($lastComment instanceof Commentaire) {
+            $elapsed = (new \DateTimeImmutable())->getTimestamp() - $lastComment->getDatePublication()->getTimestamp();
+            if ($elapsed < 5) {
+                return $this->json(['error' => 'Veuillez attendre quelques secondes avant de commenter à nouveau.'], Response::HTTP_TOO_MANY_REQUESTS);
+            }
         }
 
         $c = new Commentaire();
@@ -172,7 +189,7 @@ final class ReviewController extends AbstractController
     public function updateComment(int $id, Request $request): JsonResponse
     {
         $user = $this->requireUser();
-        if ($user === null) {
+        if (null === $user) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
 
@@ -186,7 +203,15 @@ final class ReviewController extends AbstractController
             return $this->json(['error' => 'contenu requis.'], Response::HTTP_BAD_REQUEST);
         }
 
-        $comment->setContenu(trim((string) $data['contenu']));
+        $contenu = trim((string) $data['contenu']);
+        if ('' === $contenu) {
+            return $this->json(['error' => 'Contenu requis.'], Response::HTTP_BAD_REQUEST);
+        }
+        if (mb_strlen($contenu) > 500) {
+            return $this->json(['error' => 'Le commentaire ne peut pas dépasser 500 caractères.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $comment->setContenu($contenu);
         $this->entityManager->flush();
 
         return $this->json($this->normalizer->commentaire($comment));
@@ -196,7 +221,7 @@ final class ReviewController extends AbstractController
     public function deleteComment(int $id): JsonResponse
     {
         $user = $this->requireUser();
-        if ($user === null) {
+        if (null === $user) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
 
@@ -215,7 +240,7 @@ final class ReviewController extends AbstractController
     public function toggleLike(int $id): JsonResponse
     {
         $user = $this->requireUser();
-        if ($user === null) {
+        if (null === $user) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
 

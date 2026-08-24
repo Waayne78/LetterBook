@@ -31,7 +31,7 @@ final class SocialController extends AbstractController
     public function meSocial(): JsonResponse
     {
         $user = $this->requireUser();
-        if ($user === null) {
+        if (null === $user) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
 
@@ -42,7 +42,7 @@ final class SocialController extends AbstractController
     public function searchUsers(Request $request): JsonResponse
     {
         $user = $this->requireUser();
-        if ($user === null) {
+        if (null === $user) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
 
@@ -66,7 +66,7 @@ final class SocialController extends AbstractController
     public function suggestions(): JsonResponse
     {
         $user = $this->requireUser();
-        if ($user === null) {
+        if (null === $user) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
 
@@ -90,10 +90,10 @@ final class SocialController extends AbstractController
     {
         $user = $this->requireUser();
         $target = $this->socialService->requireUser($id);
-        if ($user === null) {
+        if (null === $user) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
-        if ($target === null) {
+        if (null === $target) {
             return $this->json(['error' => 'Utilisateur introuvable.'], Response::HTTP_NOT_FOUND);
         }
 
@@ -111,10 +111,10 @@ final class SocialController extends AbstractController
     {
         $user = $this->requireUser();
         $target = $this->socialService->requireUser($id);
-        if ($user === null) {
+        if (null === $user) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
-        if ($target === null) {
+        if (null === $target) {
             return $this->json(['error' => 'Utilisateur introuvable.'], Response::HTTP_NOT_FOUND);
         }
 

@@ -17,4 +17,15 @@ class CommentaireRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Commentaire::class);
     }
+
+    public function findLastByUser(int $userId): ?Commentaire
+    {
+        return $this->createQueryBuilder('c')
+            ->andWhere('c.user = :userId')
+            ->setParameter('userId', $userId)
+            ->orderBy('c.datePublication', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

@@ -23,7 +23,7 @@ final class NotificationApiTest extends ApiTestCase
         self::assertIsArray($data);
         self::assertGreaterThanOrEqual(1, (int) ($data['unreadCount'] ?? 0));
         self::assertIsArray($data['items'] ?? null);
-        $notifId = (int) (($data['items'][0]['id'] ?? 0));
+        $notifId = (int) ($data['items'][0]['id'] ?? 0);
         self::assertGreaterThan(0, $notifId);
 
         $client->request('PATCH', '/api/me/notifications/'.$notifId.'/read', [], [], $this->authHeaders($tokenB));
@@ -33,4 +33,3 @@ final class NotificationApiTest extends ApiTestCase
         self::assertResponseIsSuccessful();
     }
 }
-

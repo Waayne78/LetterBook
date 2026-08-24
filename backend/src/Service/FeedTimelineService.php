@@ -76,7 +76,7 @@ final class FeedTimelineService
         $hasMore = \count($items) > self::LIMIT;
         $items = \array_slice($items, 0, self::LIMIT);
         $nextCursor = null;
-        if ($hasMore && $items !== []) {
+        if ($hasMore && [] !== $items) {
             $last = $items[\count($items) - 1];
             $nextCursor = $last['at'];
         }
@@ -112,7 +112,7 @@ final class FeedTimelineService
         }
 
         $hasMore = \count($avisList) > self::LIMIT;
-        $nextCursor = $items !== [] && $hasMore ? $items[\count($items) - 1]['at'] : null;
+        $nextCursor = [] !== $items && $hasMore ? $items[\count($items) - 1]['at'] : null;
 
         return [
             'items' => $items,
@@ -122,7 +122,7 @@ final class FeedTimelineService
 
     private function parseCursor(?string $cursor): ?\DateTimeImmutable
     {
-        if ($cursor === null || $cursor === '') {
+        if (null === $cursor || '' === $cursor) {
             return null;
         }
         try {
@@ -131,5 +131,4 @@ final class FeedTimelineService
             return null;
         }
     }
-
 }

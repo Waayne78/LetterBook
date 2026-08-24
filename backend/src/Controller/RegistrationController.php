@@ -36,11 +36,11 @@ final class RegistrationController extends AbstractController
         $pseudo = isset($data['pseudo']) ? trim((string) $data['pseudo']) : '';
         $consent = isset($data['consentementRgpd']) ? (bool) $data['consentementRgpd'] : false;
 
-        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if ('' === $email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return $this->json(['error' => 'Email invalide.'], Response::HTTP_BAD_REQUEST);
         }
 
-        if ($pseudo === '' || mb_strlen($pseudo) < 2) {
+        if ('' === $pseudo || mb_strlen($pseudo) < 2) {
             return $this->json(['error' => 'Pseudo requis (2 caractères minimum).'], Response::HTTP_BAD_REQUEST);
         }
 
@@ -52,7 +52,7 @@ final class RegistrationController extends AbstractController
             return $this->json(['error' => 'Le consentement RGPD est obligatoire.'], Response::HTTP_BAD_REQUEST);
         }
 
-        if ($this->userRepository->findOneBy(['email' => $email]) !== null) {
+        if (null !== $this->userRepository->findOneBy(['email' => $email])) {
             return $this->json(['error' => 'Cet email est déjà utilisé.'], Response::HTTP_CONFLICT);
         }
 

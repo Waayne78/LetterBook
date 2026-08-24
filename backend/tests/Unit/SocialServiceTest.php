@@ -117,4 +117,3 @@ final class SocialServiceTest extends TestCase
         return $user;
     }
 }
-

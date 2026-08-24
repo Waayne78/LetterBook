@@ -128,4 +128,3 @@ final class LivreImportServiceTest extends TestCase
         self::assertSame('fr', $result->getLangue());
     }
 }
-

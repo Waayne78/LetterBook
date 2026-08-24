@@ -34,7 +34,7 @@ function BookLogoMark({ className = '' }: { className?: string }) {
 }
 
 export function Navbar() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [searchQ, setSearchQ] = useState('')
@@ -149,13 +149,6 @@ export function Navbar() {
                   <UserAvatar pseudo={user.pseudo} photo={user.photo} className="h-5 w-5 shadow-sm" textClassName="text-[10px]" />
                   <span className="max-w-[7rem] truncate">{user.pseudo}</span>
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => logout()}
-                  className="hidden rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-primary shadow-sm transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:inline-flex"
-                >
-                  Déconnexion
-                </button>
               </>
             ) : (
               <>
@@ -255,22 +248,14 @@ export function Navbar() {
             </nav>
             <div className="border-t border-slate-100 p-4">
               {user ? (
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2">
-                    <UserAvatar pseudo={user.pseudo} photo={user.photo} className="h-10 w-10" textClassName="text-sm" />
-                    <span className="truncate font-medium text-slate-800">{user.pseudo}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      logout()
-                      setMobileOpen(false)
-                    }}
-                    className="w-full rounded-xl border border-slate-200 py-3 text-sm font-semibold text-primary hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  >
-                    Déconnexion
-                  </button>
-                </div>
+                <Link
+                  to={`/profiles/${user.id}`}
+                  className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-3 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <UserAvatar pseudo={user.pseudo} photo={user.photo} className="h-10 w-10" textClassName="text-sm" />
+                  <span className="truncate font-medium text-slate-800">{user.pseudo}</span>
+                </Link>
               ) : (
                 <div className="flex flex-col gap-2">
                   <Link

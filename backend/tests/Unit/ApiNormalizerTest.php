@@ -45,4 +45,3 @@ final class ApiNormalizerTest extends TestCase
         self::assertSame('Terminé', $result['statutLabel']);
     }
 }
-

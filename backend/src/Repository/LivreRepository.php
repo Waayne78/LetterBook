@@ -21,7 +21,7 @@ class LivreRepository extends ServiceEntityRepository
     /** @return list<Livre> */
     public function findRelatedByGenre(?string $genre, int $excludeId, int $limit = 4): array
     {
-        if ($genre === null || trim($genre) === '') {
+        if (null === $genre || '' === trim($genre)) {
             return [];
         }
 

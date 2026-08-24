@@ -3,10 +3,12 @@ import { Link, useParams } from 'react-router-dom'
 import { BookOpen, MessageSquareQuote, Settings, UserPlus, Users } from 'lucide-react'
 import { api } from '../api/client'
 import { useAuth } from '../auth/useAuth'
+import { RatingStars } from '../components/bookDetail/RatingStars'
 import { FollowButton } from '../components/social/FollowButton'
 import { EmptyState } from '../components/ui/EmptyState'
 import { UserAvatar } from '../components/ui/UserAvatar'
-import { EmptyStateIconBook } from '../components/ui/emptyStateIcons'
+import { EmptyStateIconBook, EmptyStateIconChat } from '../components/ui/emptyStateIcons'
+import { formatRelativeDate } from '../lib/formatRelativeDate'
 import type { ProfileSocial } from '../types/social'
 
 type ProfilePayload = {
@@ -17,7 +19,14 @@ type ProfilePayload = {
     id: number
     livre: { id: number; titre: string; auteur: string; couverture: string | null } | null
   }>
-  derniersAvis: Array<{ id: number; note: number; contenu: string; livre?: { titre: string } }>
+  derniersAvis: Array<{
+    id: number
+    note: number
+    contenu: string
+    datePublication?: string
+    livreId?: number | null
+    livre?: { id: number; titre: string; auteur: string; couverture: string | null } | null
+  }>
 }
 
 export function ProfilePage() {
@@ -66,63 +75,87 @@ export function ProfilePage() {
   })
 
   return (
-    <div className="space-y-8">
-      <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-primary via-slate-900 to-indigo-950 p-6 text-primary-foreground shadow-[0_24px_60px_-24px_rgba(15,23,42,0.55)] md:p-8">
-        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-indigo-400/20 blur-3xl" aria-hidden />
-        <div className="pointer-events-none absolute -left-16 -bottom-20 h-60 w-60 rounded-full bg-accent/20 blur-3xl" aria-hidden />
+    <div className="mx-auto max-w-5xl space-y-8">
+      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div className="p-6 md:p-8">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-4">
+              <UserAvatar
+                pseudo={data.user.pseudo}
+                photo={data.user.photo}
+                className="h-20 w-20 shrink-0 ring-2 ring-slate-100 md:h-24 md:w-24"
+                textClassName="text-2xl"
+              />
+              <div className="min-w-0">
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
+                  @{data.user.pseudo}
+                </h1>
+                <p className="mt-1 text-sm text-slate-500">Membre depuis {memberSince}</p>
+                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
+                  {data.user.bio || 'Ce lecteur n’a pas encore ajouté de bio.'}
+                </p>
+              </div>
+            </div>
 
-        <div className="relative flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-          <div className="flex items-start gap-4">
-            <UserAvatar
-              pseudo={data.user.pseudo}
-              photo={data.user.photo}
-              className="h-20 w-20 ring-2 ring-white/20 md:h-24 md:w-24"
-              textClassName="text-2xl"
-            />
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight md:text-4xl">@{data.user.pseudo}</h1>
-              <p className="mt-1 text-sm text-slate-300">Membre depuis {memberSince}</p>
-              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-200">
-                {data.user.bio || 'Ce lecteur n’a pas encore ajouté de bio.'}
-              </p>
+            <div className="flex shrink-0 flex-wrap gap-2 sm:pt-1">
+              {!isOwnProfile && data.social && id && (
+                <FollowButton
+                  userId={Number(id)}
+                  relationship={data.social.relationship}
+                  onChange={(r) =>
+                    setData((prev) =>
+                      prev && prev.social ? { ...prev, social: { ...prev.social, relationship: r } } : prev,
+                    )
+                  }
+                />
+              )}
+              {isOwnProfile && (
+                <Link
+                  to="/settings"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-primary/30 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <Settings className="h-4 w-4" aria-hidden />
+                  Paramètres
+                </Link>
+              )}
             </div>
           </div>
-
-          <div className="flex flex-wrap gap-2">
-            {!isOwnProfile && data.social && id && (
-              <FollowButton
-                userId={Number(id)}
-                relationship={data.social.relationship}
-                onChange={(r) =>
-                  setData((prev) =>
-                    prev && prev.social ? { ...prev, social: { ...prev.social, relationship: r } } : prev,
-                  )
-                }
-              />
-            )}
-            {isOwnProfile && (
-              <Link
-                to="/settings"
-                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-              >
-                <Settings className="h-4 w-4" aria-hidden />
-                Paramètres du compte
-              </Link>
-            )}
-          </div>
         </div>
-      </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard label="Livres suivis" value={data.stats.livresBibliotheque} icon={<BookOpen className="h-4 w-4" />} />
-        <StatCard label="Avis publiés" value={data.stats.avis} icon={<MessageSquareQuote className="h-4 w-4" />} />
-        {data.social && (
-          <>
-            <StatLink to="/network?tab=followers" label="Abonnés" value={data.social.followersCount} icon={<Users className="h-4 w-4" />} />
-            <StatLink to="/network?tab=following" label="Abonnements" value={data.social.followingCount} icon={<UserPlus className="h-4 w-4" />} />
-            <StatLink to="/network?tab=friends" label="Amis" value={data.social.friendsCount} icon={<Users className="h-4 w-4" />} />
-          </>
-        )}
+        <div className="grid grid-cols-2 divide-x divide-y divide-slate-100 border-t border-slate-100 sm:grid-cols-3 lg:grid-cols-5 lg:divide-y-0">
+          <ProfileStatItem
+            label="Livres suivis"
+            value={data.stats.livresBibliotheque}
+            icon={<BookOpen className="h-4 w-4" aria-hidden />}
+          />
+          <ProfileStatItem
+            label="Avis publiés"
+            value={data.stats.avis}
+            icon={<MessageSquareQuote className="h-4 w-4" aria-hidden />}
+          />
+          {data.social && (
+            <>
+              <ProfileStatItem
+                label="Abonnés"
+                value={data.social.followersCount}
+                icon={<Users className="h-4 w-4" aria-hidden />}
+                to={isOwnProfile ? '/network?tab=followers' : undefined}
+              />
+              <ProfileStatItem
+                label="Abonnements"
+                value={data.social.followingCount}
+                icon={<UserPlus className="h-4 w-4" aria-hidden />}
+                to={isOwnProfile ? '/network?tab=following' : undefined}
+              />
+              <ProfileStatItem
+                label="Amis"
+                value={data.social.friendsCount}
+                icon={<Users className="h-4 w-4" aria-hidden />}
+                to={isOwnProfile ? '/network?tab=friends' : undefined}
+              />
+            </>
+          )}
+        </div>
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[1.25fr_1fr]">
@@ -199,74 +232,130 @@ export function ProfilePage() {
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-7">
-          <h2 className="text-xl font-semibold text-primary">Derniers avis</h2>
-          <div className="mt-5 space-y-3">
-            {avisEmpty ? (
-              <EmptyState
-                title="Pas encore d’avis publics"
-                description="Les avis publiés par ce membre s’afficheront ici."
-              />
-            ) : (
-              data.derniersAvis.map((a) => (
-                <article key={a.id} className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="line-clamp-2 font-semibold text-slate-900">{a.livre?.titre || 'Livre'}</p>
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">
-                      {a.note}/5
-                    </span>
-                  </div>
-                  <p className="mt-2 line-clamp-4 text-sm leading-relaxed text-slate-700">{a.contenu}</p>
-                </article>
-              ))
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <h2 className="text-xl font-semibold text-primary">Derniers avis</h2>
+            {!avisEmpty && (
+              <span className="text-sm text-muted">
+                {data.stats.avis} avis publié{data.stats.avis !== 1 ? 's' : ''}
+              </span>
             )}
           </div>
+          {avisEmpty ? (
+            <EmptyState
+              icon={<EmptyStateIconChat />}
+              title="Pas encore d’avis publics"
+              description={
+                isOwnProfile
+                  ? 'Partagez votre ressenti sur les livres que vous lisez.'
+                  : 'Les avis publiés par ce membre s’afficheront ici.'
+              }
+            />
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {data.derniersAvis.map((a) => (
+                <ProfileReviewRow key={a.id} review={a} />
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </div>
   )
 }
 
-function StatCard({
-  label,
-  value,
-  icon,
-}: {
-  label: string
-  value: number
-  icon: ReactNode
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-primary">
-        {icon}
-      </span>
-      <p className="mt-3 text-2xl font-bold tabular-nums text-primary">{value}</p>
-      <p className="text-xs uppercase tracking-wide text-slate-600">{label}</p>
+type ProfileReview = ProfilePayload['derniersAvis'][number]
+
+function ProfileReviewRow({ review }: { review: ProfileReview }) {
+  const bookId = review.livre?.id ?? review.livreId ?? null
+  const bookLink = bookId != null ? `/books/${bookId}` : null
+  const title = review.livre?.titre ?? 'Livre'
+
+  const cover = (
+    <div className="h-[4.5rem] w-[3.25rem] overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-200 transition group-hover:ring-primary/40">
+      {review.livre?.couverture ? (
+        <img src={review.livre.couverture} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <div className="flex h-full items-center justify-center">
+          <BookOpen className="h-5 w-5 text-slate-400" aria-hidden />
+        </div>
+      )}
     </div>
+  )
+
+  return (
+    <article className="group flex gap-4 py-4 first:pt-0 last:pb-0">
+      {bookLink ? (
+        <Link to={bookLink} className="shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg">
+          {cover}
+        </Link>
+      ) : (
+        <div className="shrink-0">{cover}</div>
+      )}
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+          <div className="min-w-0">
+            {bookLink ? (
+              <Link
+                to={bookLink}
+                className="line-clamp-2 font-semibold text-slate-900 transition hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
+              >
+                {title}
+              </Link>
+            ) : (
+              <p className="line-clamp-2 font-semibold text-slate-900">{title}</p>
+            )}
+            {review.livre?.auteur && <p className="mt-0.5 line-clamp-1 text-xs text-muted">{review.livre.auteur}</p>}
+          </div>
+          {review.datePublication && (
+            <time className="shrink-0 text-xs text-muted" dateTime={review.datePublication}>
+              {formatRelativeDate(review.datePublication)}
+            </time>
+          )}
+        </div>
+
+        <div className="mt-2 flex items-center gap-2">
+          <RatingStars value={review.note} size="sm" />
+          <span className="text-xs font-semibold tabular-nums text-amber-800">{review.note}/5</span>
+        </div>
+
+        <blockquote className="mt-2.5 border-l-2 border-amber-200/80 pl-3 text-sm leading-relaxed text-slate-700">
+          <p className="line-clamp-4">{review.contenu}</p>
+        </blockquote>
+      </div>
+    </article>
   )
 }
 
-function StatLink({
-  to,
+function ProfileStatItem({
   label,
   value,
   icon,
+  to,
 }: {
-  to: string
   label: string
   value: number
   icon: ReactNode
+  to?: string
 }) {
-  return (
-    <Link
-      to={to}
-      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-    >
-      <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-primary">
-        {icon}
-      </span>
-      <p className="mt-3 text-2xl font-bold tabular-nums text-primary">{value}</p>
-      <p className="text-xs uppercase tracking-wide text-slate-600">{label}</p>
-    </Link>
+  const content = (
+    <>
+      <span className="inline-flex text-slate-400">{icon}</span>
+      <p className="mt-2 text-xl font-bold tabular-nums text-slate-900">{value}</p>
+      <p className="mt-0.5 text-xs font-medium text-slate-500">{label}</p>
+    </>
   )
+
+  const className =
+    'flex flex-col px-4 py-4 text-center transition hover:bg-slate-50/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary'
+
+  if (to) {
+    return (
+      <Link to={to} className={className}>
+        {content}
+      </Link>
+    )
+  }
+
+  return <div className={className}>{content}</div>
 }

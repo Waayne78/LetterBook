@@ -20,17 +20,17 @@ final class LivreImportService
     public function importFromGoogleVolumeId(string $volumeId): Livre
     {
         $existing = $this->livreRepository->findOneBy(['externalId' => $volumeId]);
-        if ($existing !== null) {
+        if (null !== $existing) {
             return $this->enrichMetadataIfMissing($existing);
         }
 
         $item = $this->googleBooksService->fetchVolume($volumeId);
-        if ($item === null) {
+        if (null === $item) {
             throw new \InvalidArgumentException('Impossible de récupérer ce volume.');
         }
 
         $parsed = $this->googleBooksService->parseFetchedVolume($item);
-        if ($parsed === null) {
+        if (null === $parsed) {
             throw new \InvalidArgumentException('Réponse Google Books invalide.');
         }
 
@@ -51,7 +51,7 @@ final class LivreImportService
         }
 
         $parsed = $this->fetchParsedMetadata($livre);
-        if ($parsed === null) {
+        if (null === $parsed) {
             return $livre;
         }
 
@@ -63,30 +63,30 @@ final class LivreImportService
 
     private function hasCompleteMetadata(Livre $livre): bool
     {
-        return $livre->getNombrePages() !== null
-            && $livre->getEditeur() !== null
-            && $livre->getDatePublication() !== null
-            && $livre->getLangue() !== null;
+        return null !== $livre->getNombrePages()
+            && null !== $livre->getEditeur()
+            && null !== $livre->getDatePublication()
+            && null !== $livre->getLangue();
     }
 
     /** @return array<string, mixed>|null */
     private function fetchParsedMetadata(Livre $livre): ?array
     {
         $externalId = $livre->getExternalId();
-        if ($externalId !== null && $externalId !== '') {
+        if (null !== $externalId && '' !== $externalId) {
             $item = $this->googleBooksService->fetchVolume($externalId);
-            if ($item !== null) {
+            if (null !== $item) {
                 return $this->googleBooksService->parseFetchedVolume($item);
             }
         }
 
         $isbn = $livre->getIsbn();
-        if ($isbn === null || $isbn === '') {
+        if (null === $isbn || '' === $isbn) {
             return null;
         }
 
         $search = $this->googleBooksService->searchVolumes($isbn, 0, 1);
-        if ($search['items'] === []) {
+        if ([] === $search['items']) {
             return null;
         }
 
@@ -99,7 +99,7 @@ final class LivreImportService
     private function applyParsedMetadata(Livre $livre, array $parsed, bool $fillCoreFields): void
     {
         if ($fillCoreFields) {
-            $livre->setTitre(isset($parsed['titre']) && \is_string($parsed['titre']) && $parsed['titre'] !== ''
+            $livre->setTitre(isset($parsed['titre']) && \is_string($parsed['titre']) && '' !== $parsed['titre']
                 ? $parsed['titre']
                 : 'Sans titre');
             $livre->setAuteur(isset($parsed['auteur']) && \is_string($parsed['auteur']) ? $parsed['auteur'] : '');
@@ -117,40 +117,40 @@ final class LivreImportService
             }
         }
 
-        if ($livre->getExternalId() === null && isset($parsed['googleVolumeId']) && \is_string($parsed['googleVolumeId'])) {
+        if (null === $livre->getExternalId() && isset($parsed['googleVolumeId']) && \is_string($parsed['googleVolumeId'])) {
             $livre->setExternalId($parsed['googleVolumeId']);
         }
 
-        if ($livre->getNombrePages() === null && isset($parsed['nombrePages']) && is_numeric($parsed['nombrePages'])) {
+        if (null === $livre->getNombrePages() && isset($parsed['nombrePages']) && is_numeric($parsed['nombrePages'])) {
             $pages = (int) $parsed['nombrePages'];
             if ($pages > 0) {
                 $livre->setNombrePages($pages);
             }
         }
 
-        if ($livre->getDatePublication() === null && isset($parsed['datePublication']) && \is_string($parsed['datePublication']) && $parsed['datePublication'] !== '') {
+        if (null === $livre->getDatePublication() && isset($parsed['datePublication']) && \is_string($parsed['datePublication']) && '' !== $parsed['datePublication']) {
             $livre->setDatePublication($parsed['datePublication']);
         }
 
-        if ($livre->getEditeur() === null && isset($parsed['editeur']) && \is_string($parsed['editeur']) && $parsed['editeur'] !== '') {
+        if (null === $livre->getEditeur() && isset($parsed['editeur']) && \is_string($parsed['editeur']) && '' !== $parsed['editeur']) {
             $livre->setEditeur($parsed['editeur']);
         }
 
-        if ($livre->getLangue() === null && isset($parsed['langue']) && \is_string($parsed['langue']) && $parsed['langue'] !== '') {
+        if (null === $livre->getLangue() && isset($parsed['langue']) && \is_string($parsed['langue']) && '' !== $parsed['langue']) {
             $livre->setLangue($parsed['langue']);
         }
 
-        if ($fillCoreFields || $livre->getResume() === null) {
-            if (isset($parsed['resume']) && \is_string($parsed['resume']) && $parsed['resume'] !== '') {
+        if ($fillCoreFields || null === $livre->getResume()) {
+            if (isset($parsed['resume']) && \is_string($parsed['resume']) && '' !== $parsed['resume']) {
                 $livre->setResume($parsed['resume']);
             }
         }
 
-        if ($livre->getCouverture() === null && isset($parsed['couverture']) && \is_string($parsed['couverture'])) {
+        if (null === $livre->getCouverture() && isset($parsed['couverture']) && \is_string($parsed['couverture'])) {
             $livre->setCouverture($parsed['couverture']);
         }
 
-        if ($livre->getGenre() === null && isset($parsed['genre']) && \is_string($parsed['genre'])) {
+        if (null === $livre->getGenre() && isset($parsed['genre']) && \is_string($parsed['genre'])) {
             $livre->setGenre($parsed['genre']);
         }
     }

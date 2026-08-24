@@ -1,8 +1,9 @@
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { AlertTriangle, Camera, KeyRound, Mail, Save, ShieldCheck, Trash2, UserRound } from 'lucide-react'
+import { AlertTriangle, Camera, KeyRound, LogOut, Mail, Save, ShieldCheck, Trash2, UserRound } from 'lucide-react'
 import { api } from '../api/client'
 import { useAuth } from '../auth/useAuth'
+import { useToast } from '../components/ui/useToast'
 
 const inputClass =
   'mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30'
@@ -11,6 +12,7 @@ const sectionClass = 'rounded-3xl border border-slate-200 bg-white p-6 shadow-sm
 export function SettingsPage() {
   const { user, logout, refreshMe } = useAuth()
   const navigate = useNavigate()
+  const { toast } = useToast()
 
   const [pseudo, setPseudo] = useState('')
   const [bio, setBio] = useState('')
@@ -18,13 +20,14 @@ export function SettingsPage() {
   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null)
   const [selectedPhotoPreview, setSelectedPhotoPreview] = useState<string | null>(null)
   const [password, setPassword] = useState('')
-  const [profileMsg, setProfileMsg] = useState<string | null>(null)
-  const [profileError, setProfileError] = useState<string | null>(null)
+  const [currentPassword, setCurrentPassword] = useState('')
   const [profilePending, setProfilePending] = useState(false)
 
   const [deleteConfirm, setDeleteConfirm] = useState('')
+  const [deletePassword, setDeletePassword] = useState('')
   const [deletePending, setDeletePending] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [exportPending, setExportPending] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -74,8 +77,6 @@ export function SettingsPage() {
 
   async function saveProfile(e: FormEvent) {
     e.preventDefault()
-    setProfileMsg(null)
-    setProfileError(null)
     setProfilePending(true)
     try {
       let finalPhoto = photo.trim() || null
@@ -97,17 +98,52 @@ export function SettingsPage() {
         photo: finalPhoto,
       }
       if (password.length >= 8) {
+        if (currentPassword.length === 0) {
+          toast({
+            title: 'Mot de passe actuel requis',
+            description: 'Indiquez votre mot de passe actuel pour en définir un nouveau.',
+            variant: 'error',
+          })
+          setProfilePending(false)
+          return
+        }
         body.password = password
+        body.currentPassword = currentPassword
       }
       await api.patch('/me', body)
       await refreshMe()
       setPassword('')
-      setProfileMsg('Profil mis à jour.')
+      setCurrentPassword('')
+      toast({ title: 'Profil mis à jour.' })
     } catch {
-      setProfileError('Impossible d’enregistrer le profil.')
+      toast({ title: 'Impossible d’enregistrer le profil.', variant: 'error' })
     } finally {
       setProfilePending(false)
     }
+  }
+
+  async function exportData() {
+    setExportPending(true)
+    try {
+      const { data } = await api.get<Record<string, unknown>>('/me/export')
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `letterbook-export-${new Date().toISOString().slice(0, 10)}.json`
+      link.click()
+      URL.revokeObjectURL(url)
+      toast({ title: 'Export téléchargé.' })
+    } catch {
+      toast({ title: 'Impossible d’exporter vos données.', variant: 'error' })
+    } finally {
+      setExportPending(false)
+    }
+  }
+
+  function handleLogout() {
+    logout()
+    navigate('/', { replace: true })
   }
 
   async function deleteAccount() {
@@ -115,14 +151,22 @@ export function SettingsPage() {
       setDeleteError('Saisissez votre pseudo exactement pour confirmer.')
       return
     }
+    if (deletePassword.length === 0) {
+      setDeleteError('Saisissez votre mot de passe pour confirmer.')
+      return
+    }
     setDeleteError(null)
     setDeletePending(true)
     try {
-      await api.delete('/me')
+      await api.delete('/me', { data: { password: deletePassword } })
       logout()
       navigate('/', { replace: true })
     } catch {
-      setDeleteError('Suppression impossible. Réessayez plus tard.')
+      toast({
+        title: 'Suppression impossible',
+        description: 'Vérifiez votre mot de passe puis réessayez.',
+        variant: 'error',
+      })
       setDeletePending(false)
     }
   }
@@ -222,17 +266,6 @@ export function SettingsPage() {
                 </div>
               </label>
 
-              {profileMsg && (
-                <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                  {profileMsg}
-                </p>
-              )}
-              {profileError && (
-                <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {profileError}
-                </p>
-              )}
-
               <div className="flex flex-wrap items-center gap-3 pt-1">
                 <button
                   type="submit"
@@ -262,7 +295,18 @@ export function SettingsPage() {
               </span>
             </div>
 
-            <div className="mt-6">
+            <div className="mt-6 space-y-4">
+              <label className="block text-sm font-medium text-slate-700">
+                Mot de passe actuel
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className={inputClass}
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                />
+              </label>
               <label className="block text-sm font-medium text-slate-700">
                 Nouveau mot de passe (optionnel, 8 caractères min.)
                 <input
@@ -275,10 +319,23 @@ export function SettingsPage() {
                   placeholder="••••••••"
                 />
               </label>
-              <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-slate-500">
+              <p className="inline-flex items-center gap-1.5 text-xs text-slate-500">
                 <KeyRound className="h-3.5 w-3.5" aria-hidden />
-                Le mot de passe n’est mis à jour que si vous renseignez ce champ.
+                Le mot de passe n’est mis à jour que si vous renseignez les deux champs.
               </p>
+            </div>
+
+            <div className="mt-8 border-t border-slate-100 pt-6">
+              <h3 className="text-sm font-semibold text-slate-900">Session</h3>
+              <p className="mt-1 text-sm text-muted">Terminez votre session sur cet appareil.</p>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="mt-4 inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-primary shadow-sm transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              >
+                <LogOut className="h-4 w-4" aria-hidden />
+                Déconnexion
+              </button>
             </div>
           </section>
 
@@ -318,6 +375,26 @@ export function SettingsPage() {
             </div>
           </section>
 
+          <section className={`${sectionClass} lg:col-span-2`}>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">Données personnelles (RGPD)</h2>
+                <p className="mt-2 max-w-2xl text-sm text-slate-600">
+                  Téléchargez une copie de vos données (profil, bibliothèque, avis, commentaires, réseau).
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={exportPending}
+                onClick={() => void exportData()}
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-95 disabled:opacity-60"
+              >
+                <ShieldCheck className="h-4 w-4" aria-hidden />
+                {exportPending ? 'Export…' : 'Exporter mes données'}
+              </button>
+            </div>
+          </section>
+
           <section className="rounded-3xl border border-red-200 bg-gradient-to-b from-red-50 to-red-50/70 p-6 shadow-sm md:p-8 lg:col-start-2 lg:row-start-2 lg:h-full">
             <div className="flex h-full flex-col space-y-5">
               <div className="flex items-start gap-3">
@@ -327,7 +404,8 @@ export function SettingsPage() {
                 <div className="min-w-0">
                   <h2 className="text-xl font-semibold leading-tight text-red-900">Supprimer mon compte</h2>
                   <p className="mt-2 max-w-md text-sm leading-relaxed text-red-800">
-                    Action irréversible : votre bibliothèque, vos avis et vos commentaires seront supprimés.
+                    Action irréversible : vos données personnelles seront supprimées. Vos avis publics resteront visibles
+                    sous le nom « Utilisateur supprimé ».
                   </p>
                 </div>
               </div>
@@ -341,6 +419,16 @@ export function SettingsPage() {
                   onChange={(e) => setDeleteConfirm(e.target.value)}
                   className="w-full rounded-xl border border-red-200 bg-white px-3 py-2.5 text-slate-900 shadow-sm focus:border-red-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
                 />
+                <label className="block text-sm font-medium text-red-900">
+                  Mot de passe
+                  <input
+                    type="password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-red-200 bg-white px-3 py-2.5 text-slate-900 shadow-sm focus:border-red-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+                    autoComplete="current-password"
+                  />
+                </label>
                 {deleteError && <p className="text-sm text-red-700">{deleteError}</p>}
               </div>
 

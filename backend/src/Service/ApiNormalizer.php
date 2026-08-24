@@ -29,7 +29,7 @@ final class ApiNormalizer
     /** @return array<string, mixed> */
     public function userPublicOrDeleted(?User $user): ?array
     {
-        if ($user === null) {
+        if (null === $user) {
             return [
                 'id' => null,
                 'pseudo' => self::DELETED_USER_PSEUDO,
@@ -112,7 +112,7 @@ final class ApiNormalizer
             'commentsCount' => $avis->getCommentaires()->count(),
         ];
 
-        if ($viewer !== null) {
+        if (null !== $viewer) {
             $liked = false;
             foreach ($avis->getLikes() as $like) {
                 if ($like->getUser()?->getId() === $viewer->getId()) {

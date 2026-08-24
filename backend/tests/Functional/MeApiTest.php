@@ -38,4 +38,3 @@ final class MeApiTest extends ApiTestCase
         self::assertSame('Bio de test', $updated['bio'] ?? null);
     }
 }
-

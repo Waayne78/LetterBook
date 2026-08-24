@@ -41,7 +41,8 @@ Les notifications signalent les nouveaux abonnés et les nouveaux liens d’amit
 ## 5. Échanger sur les livres
 
 - **J’aime** : sur une fiche livre, utilisez le bouton sous un avis pour liker (une deuxième pression retire le like).
-- **Commentaires** : sous chaque avis, saisissez un court commentaire puis **Envoyer**.
+- **Commentaires** : sous chaque avis, saisissez un commentaire (500 caractères maximum) puis **Envoyer**. Un délai de quelques secondes s’applique entre deux envois.
+- **Signaler** : connecté, vous pouvez signaler un avis ou un commentaire inapproprié via **Signaler**. Le contenu reste visible jusqu’à décision d’un administrateur.
 
 ## 6. Profil public
 
@@ -53,7 +54,10 @@ Depuis la barre de recherche ou la page **À découvrir**, cherchez par titre, a
 
 ## 8. Administration (comptes autorisés)
 
-Les administrateurs accèdent à **Admin** pour consulter les utilisateurs et suspendre ou réactiver un compte en cas de modération.
+Les administrateurs accèdent à **Admin** pour :
+
+- consulter les utilisateurs et **suspendre** ou **réactiver** un compte ;
+- traiter la **file de signalements** (rejeter ou supprimer le contenu signalé).
 
 ## 9. Paramètres du compte
 
@@ -61,14 +65,19 @@ Depuis **Paramètres** (icône engrenage dans la barre de navigation, lien sur v
 
 - modifier votre pseudo, bio et URL de photo ;
 - changer votre mot de passe ;
-- **supprimer définitivement** votre compte (confirmation par saisie du pseudo).
+- **exporter vos données** personnelles (fichier JSON, droit à la portabilité RGPD) ;
+- **supprimer définitivement** votre compte (confirmation par saisie du pseudo). Vos avis publics sont conservés sous le nom « Utilisateur supprimé ».
 
-## 10. Gérer sa bibliothèque
+## 10. Cookies et données personnelles
+
+Lors de votre première visite, un **bandeau cookies** vous informe de l’usage de cookies essentiels (session et sécurité). Vous pouvez gérer vos données depuis **Paramètres** (export et suppression).
+
+## 11. Gérer sa bibliothèque
 
 Sur chaque livre de **Ma bibliothèque**, vous pouvez changer le **statut** de lecture, ajuster la **progression** (pour les livres « En cours ») et **retirer** un ouvrage de la liste.
 
-## 11. Supprimer son compte (API)
+## 12. Supprimer son compte (API)
 
-La suppression est aussi disponible via l’API (`DELETE /api/me`) pour les intégrations ; l’interface web utilise la même route depuis la page Paramètres.
+La suppression est aussi disponible via l’API (`DELETE /api/me`) pour les intégrations ; l’interface web utilise la même route depuis la page Paramètres. L’export est disponible via `GET /api/me/export`.
 
-Pour l’installation en production, voir [`docs/DEPLOIEMENT.md`](DEPLOIEMENT.md). Pour le développement local, reportez-vous au `README.md` à la racine du projet.
+Pour l’installation en production, voir [`docs/DEPLOIEMENT.md`](DEPLOIEMENT.md). Pour l’architecture et la conformité CDCF, voir [`docs/DOCUMENTATION_TECHNIQUE.md`](DOCUMENTATION_TECHNIQUE.md). Pour le développement local, reportez-vous au `README.md` à la racine du projet.

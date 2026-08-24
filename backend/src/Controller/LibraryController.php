@@ -36,12 +36,12 @@ final class LibraryController extends AbstractController
     public function list(Request $request): JsonResponse
     {
         $user = $this->requireUser();
-        if ($user === null) {
+        if (null === $user) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
 
         $statutParam = $request->query->getString('statut');
-        if ($statutParam !== '' && !\in_array($statutParam, ['a_lire', 'en_cours', 'termine'], true)) {
+        if ('' !== $statutParam && !\in_array($statutParam, ['a_lire', 'en_cours', 'termine'], true)) {
             return $this->json(['error' => 'Statut invalide.'], Response::HTTP_BAD_REQUEST);
         }
 
@@ -65,7 +65,7 @@ final class LibraryController extends AbstractController
     public function create(Request $request): JsonResponse
     {
         $user = $this->requireUser();
-        if ($user === null) {
+        if (null === $user) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
 
@@ -105,7 +105,7 @@ final class LibraryController extends AbstractController
         }
 
         $progression = isset($data['progression']) ? (int) $data['progression'] : null;
-        if ($progression !== null) {
+        if (null !== $progression) {
             $progression = max(0, min(100, $progression));
         }
 
@@ -125,7 +125,7 @@ final class LibraryController extends AbstractController
     public function update(int $id, Request $request): JsonResponse
     {
         $user = $this->requireUser();
-        if ($user === null) {
+        if (null === $user) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
 
@@ -146,14 +146,14 @@ final class LibraryController extends AbstractController
                 'termine' => ReadingStatus::TERMINE,
                 default => null,
             };
-            if ($st !== null) {
+            if (null !== $st) {
                 $entry->setStatut($st);
             }
         }
 
         if (\array_key_exists('progression', $data)) {
             $p = $data['progression'];
-            $entry->setProgression($p === null ? null : max(0, min(100, (int) $p)));
+            $entry->setProgression(null === $p ? null : max(0, min(100, (int) $p)));
         }
 
         $entry->touchUpdatedAt();
@@ -166,7 +166,7 @@ final class LibraryController extends AbstractController
     public function delete(int $id): JsonResponse
     {
         $user = $this->requireUser();
-        if ($user === null) {
+        if (null === $user) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
 

@@ -24,4 +24,3 @@ final class Version20260602113000 extends AbstractMigration
         $this->throwIrreversibleMigrationException('Legacy status cleanup is irreversible.');
     }
 }
-
