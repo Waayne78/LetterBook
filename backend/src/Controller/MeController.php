@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Service\AccountDeletionService;
 use App\Service\ApiNormalizer;
+use App\Service\UserDataExportService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -23,6 +25,8 @@ final class MeController extends AbstractController
         private readonly ApiNormalizer $normalizer,
         private readonly EntityManagerInterface $entityManager,
         private readonly UserPasswordHasherInterface $passwordHasher,
+        private readonly AccountDeletionService $accountDeletionService,
+        private readonly UserDataExportService $userDataExportService,
     ) {
     }
 
@@ -52,24 +56,31 @@ final class MeController extends AbstractController
 
         if (isset($data['pseudo'])) {
             $pseudo = trim((string) $data['pseudo']);
-            if ($pseudo !== '' && mb_strlen($pseudo) >= 2) {
+            if ('' !== $pseudo && mb_strlen($pseudo) >= 2) {
                 $user->setPseudo($pseudo);
             }
         }
 
         if (\array_key_exists('bio', $data)) {
-            $user->setBio($data['bio'] !== null ? (string) $data['bio'] : null);
+            $user->setBio(null !== $data['bio'] ? (string) $data['bio'] : null);
         }
 
         if (\array_key_exists('photo', $data)) {
-            $user->setPhoto($data['photo'] !== null ? (string) $data['photo'] : null);
+            $user->setPhoto(null !== $data['photo'] ? (string) $data['photo'] : null);
         }
 
         if (isset($data['password'])) {
             $password = (string) $data['password'];
-            if (mb_strlen($password) >= 8) {
-                $user->setPassword($this->passwordHasher->hashPassword($user, $password));
+            if (mb_strlen($password) < 8) {
+                return $this->json(['error' => 'Le nouveau mot de passe doit contenir au moins 8 caractères.'], Response::HTTP_BAD_REQUEST);
             }
+
+            $currentPassword = isset($data['currentPassword']) ? (string) $data['currentPassword'] : '';
+            if ('' === $currentPassword || !$this->passwordHasher->isPasswordValid($user, $currentPassword)) {
+                return $this->json(['error' => 'Mot de passe actuel incorrect.'], Response::HTTP_BAD_REQUEST);
+            }
+
+            $user->setPassword($this->passwordHasher->hashPassword($user, $password));
         }
 
         $this->entityManager->flush();
@@ -94,7 +105,7 @@ final class MeController extends AbstractController
             return $this->json(['error' => 'Upload invalide.'], Response::HTTP_BAD_REQUEST);
         }
 
-        if ($file->getSize() !== null && $file->getSize() > 2 * 1024 * 1024) {
+        if (null !== $file->getSize() && $file->getSize() > 2 * 1024 * 1024) {
             return $this->json(['error' => 'Image trop volumineuse (max 2 Mo).'], Response::HTTP_BAD_REQUEST);
         }
 
@@ -135,17 +146,37 @@ final class MeController extends AbstractController
         return $this->json(['photo' => $user->getPhoto()]);
     }
 
-    #[Route('/api/me', name: 'api_me_delete', methods: ['DELETE'])]
-    public function delete(): JsonResponse
+    #[Route('/api/me/export', name: 'api_me_export', methods: ['GET'])]
+    public function export(): JsonResponse
     {
         $user = $this->getUser();
         if (!$user instanceof User) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
 
-        $this->entityManager->remove($user);
-        $this->entityManager->flush();
+        return $this->json($this->userDataExportService->export($user));
+    }
 
-        return $this->json(['message' => 'Compte supprimé.']);
+    #[Route('/api/me', name: 'api_me_delete', methods: ['DELETE'])]
+    public function delete(Request $request): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $data = json_decode($request->getContent() ?: '{}', true);
+        if (!\is_array($data)) {
+            return $this->json(['error' => 'Corps JSON invalide.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $password = isset($data['password']) ? (string) $data['password'] : '';
+        if ('' === $password || !$this->passwordHasher->isPasswordValid($user, $password)) {
+            return $this->json(['error' => 'Mot de passe incorrect.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $this->accountDeletionService->deleteAccount($user);
+
+        return $this->json(['message' => 'Compte supprimé. Les avis publics ont été anonymisés.']);
     }
 }

@@ -27,7 +27,7 @@ final class SocialService
         if ($follower->getId() === $target->getId()) {
             throw new \InvalidArgumentException('Impossible de vous suivre vous-même.');
         }
-        if ($this->followRepository->findOneBetween($follower, $target) !== null) {
+        if (null !== $this->followRepository->findOneBetween($follower, $target)) {
             return;
         }
 
@@ -62,7 +62,7 @@ final class SocialService
     public function unfollow(User $follower, User $target): void
     {
         $row = $this->followRepository->findOneBetween($follower, $target);
-        if ($row === null) {
+        if (null === $row) {
             return;
         }
         $this->entityManager->remove($row);

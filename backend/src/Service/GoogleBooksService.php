@@ -17,7 +17,7 @@ final class GoogleBooksService
 
     public function isConfigured(): bool
     {
-        return $this->googleBooksApiKey !== '';
+        return '' !== $this->googleBooksApiKey;
     }
 
     /**
@@ -43,7 +43,7 @@ final class GoogleBooksService
             'error' => null,
         ];
 
-        if ($query === '') {
+        if ('' === $query) {
             return $empty;
         }
 
@@ -93,7 +93,7 @@ final class GoogleBooksService
                 continue;
             }
             $parsed = $this->parseVolumeItem($item);
-            if ($parsed !== null) {
+            if (null !== $parsed) {
                 $out[] = $parsed;
             }
         }
@@ -138,7 +138,7 @@ final class GoogleBooksService
                     continue;
                 }
                 $type = $iden['type'] ?? '';
-                if ($type === 'ISBN_13' || $type === 'ISBN_10') {
+                if ('ISBN_13' === $type || 'ISBN_10' === $type) {
                     $isbn = isset($iden['identifier']) ? (string) $iden['identifier'] : null;
                     break;
                 }
@@ -149,7 +149,7 @@ final class GoogleBooksService
         $genre = \is_array($categories) && isset($categories[0]) ? (string) $categories[0] : null;
 
         $volumeId = isset($item['id']) ? (string) $item['id'] : '';
-        if ($volumeId === '') {
+        if ('' === $volumeId) {
             return null;
         }
 

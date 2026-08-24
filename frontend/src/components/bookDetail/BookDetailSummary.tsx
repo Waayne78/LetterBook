@@ -12,7 +12,7 @@ export function BookDetailSummary({ resume }: BookDetailSummaryProps) {
 
   if (!resume || resume.trim() === '') {
     return (
-      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-900">Résumé</h2>
         <p className="mt-2 text-sm text-muted">Aucun résumé disponible pour ce livre.</p>
       </section>

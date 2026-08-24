@@ -4,22 +4,23 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-
-final class RegistrationApiTest extends WebTestCase
+final class RegistrationApiTest extends ApiTestCase
 {
     public function testRegisterCreatesUser(): void
     {
         $client = static::createClient();
-
         $email = 'reader_test_'.uniqid('', true).'@example.com';
+        $csrf = $this->fetchCsrfToken($client);
 
         $client->request(
             'POST',
             '/api/register',
             [],
             [],
-            ['CONTENT_TYPE' => 'application/json'],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_CSRF_TOKEN' => $csrf,
+            ],
             json_encode([
                 'pseudo' => 'reader_test',
                 'email' => $email,
@@ -34,15 +35,18 @@ final class RegistrationApiTest extends WebTestCase
     public function testRegisterRequiresRgpdConsent(): void
     {
         $client = static::createClient();
-
         $email = 'reader_fail_'.uniqid('', true).'@example.com';
+        $csrf = $this->fetchCsrfToken($client);
 
         $client->request(
             'POST',
             '/api/register',
             [],
             [],
-            ['CONTENT_TYPE' => 'application/json'],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_CSRF_TOKEN' => $csrf,
+            ],
             json_encode([
                 'pseudo' => 'reader_fail',
                 'email' => $email,

@@ -37,7 +37,7 @@ final class GoogleBooksServiceTest extends TestCase
                 'https://www.googleapis.com/books/v1/volumes',
                 self::callback(static function (array $options): bool {
                     return isset($options['query']['q'], $options['query']['key'])
-                        && $options['query']['q'] === 'isbn:9782070368228';
+                        && 'isbn:9782070368228' === $options['query']['q'];
                 })
             )
             ->willReturn($response);
@@ -96,4 +96,3 @@ final class GoogleBooksServiceTest extends TestCase
         self::assertNull($service->fetchVolume('vol-404'));
     }
 }
-

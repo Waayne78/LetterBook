@@ -98,6 +98,8 @@ export function useBookSearch(query: string) {
         clearTimeout(debounceRef.current)
       }
     }
+    // `query` is mirrored via queryRef for in-flight request cancellation; trimmed drives the search.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: queryRef tracks latest query
   }, [trimmed, fetchSearch])
 
   const loadMore = useCallback(() => {

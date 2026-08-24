@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Entity\Livre;
-use App\Entity\User;
 use App\Entity\Avis;
 use App\Entity\Bibliotheque;
+use App\Entity\Livre;
+use App\Entity\User;
 use App\Repository\AvisRepository;
 use App\Repository\BibliothequeRepository;
 use App\Repository\LivreRepository;
@@ -40,7 +40,7 @@ final class BookController extends AbstractController
     {
         $q = trim($request->query->getString('q'));
         $legacyIsbn = trim($request->query->getString('isbn'));
-        if ($legacyIsbn !== '' && $q === '') {
+        if ('' !== $legacyIsbn && '' === $q) {
             $q = $legacyIsbn;
         }
 
@@ -50,11 +50,11 @@ final class BookController extends AbstractController
         $localExternalIds = [];
         $localIsbns = [];
 
-        if ($q !== '') {
+        if ('' !== $q) {
             $isbnNorm = IsbnHelper::normalize($q);
             $qb = $this->livreRepository->createQueryBuilder('l');
             $likeQ = '%'.mb_strtolower($q).'%';
-            if ($isbnNorm !== null) {
+            if (null !== $isbnNorm) {
                 $qb->where('l.isbn = :isbnExact OR l.isbn LIKE :isbnPartial')
                     ->orWhere('LOWER(l.titre) LIKE :q OR LOWER(l.auteur) LIKE :q')
                     ->setParameter('isbnExact', $isbnNorm)
@@ -64,7 +64,7 @@ final class BookController extends AbstractController
                 $qb->where('LOWER(l.titre) LIKE :q OR LOWER(l.auteur) LIKE :q')
                     ->setParameter('q', $likeQ);
                 $digitsOnly = preg_replace('/[^0-9Xx]/', '', $q) ?? '';
-                if ($digitsOnly !== '') {
+                if ('' !== $digitsOnly) {
                     $qb->orWhere('l.isbn LIKE :isbnPartial')
                         ->setParameter('isbnPartial', '%'.$digitsOnly.'%');
                 }
@@ -79,13 +79,13 @@ final class BookController extends AbstractController
                 $normalized = $this->normalizer->livre($livre);
                 $local[] = $normalized;
                 $ext = $livre->getExternalId();
-                if ($ext !== null && $ext !== '') {
+                if (null !== $ext && '' !== $ext) {
                     $localExternalIds[$ext] = true;
                 }
                 $livreIsbn = $livre->getIsbn();
-                if ($livreIsbn !== null && $livreIsbn !== '') {
+                if (null !== $livreIsbn && '' !== $livreIsbn) {
                     $norm = IsbnHelper::normalize($livreIsbn);
-                    if ($norm !== null) {
+                    if (null !== $norm) {
                         $localIsbns[$norm] = true;
                     }
                 }
@@ -95,18 +95,18 @@ final class BookController extends AbstractController
         $googleResult = $this->googleBooksService->searchVolumes($q, $startIndex, self::PAGE_SIZE);
         $googleItems = $googleResult['items'];
 
-        if ($startIndex === 0 && $googleItems !== []) {
+        if (0 === $startIndex && [] !== $googleItems) {
             $googleItems = array_values(array_filter(
                 $googleItems,
                 static function (array $item) use ($localExternalIds, $localIsbns): bool {
                     $volumeId = $item['googleVolumeId'] ?? '';
-                    if ($volumeId !== '' && isset($localExternalIds[$volumeId])) {
+                    if ('' !== $volumeId && isset($localExternalIds[$volumeId])) {
                         return false;
                     }
                     $isbn = $item['isbn'] ?? null;
-                    if (\is_string($isbn) && $isbn !== '') {
+                    if (\is_string($isbn) && '' !== $isbn) {
                         $norm = IsbnHelper::normalize($isbn);
-                        if ($norm !== null && isset($localIsbns[$norm])) {
+                        if (null !== $norm && isset($localIsbns[$norm])) {
                             return false;
                         }
                     }
@@ -119,7 +119,7 @@ final class BookController extends AbstractController
         $totalItems = $googleResult['totalItems'];
         $pageSize = $googleResult['pageSize'];
         $nextStart = $startIndex + $pageSize;
-        $googleHasMore = $googleResult['error'] === null
+        $googleHasMore = null === $googleResult['error']
             && $totalItems > 0
             && $nextStart < $totalItems;
 
@@ -151,12 +151,12 @@ final class BookController extends AbstractController
         }
 
         $item = $this->googleBooksService->fetchVolume($volumeId);
-        if ($item === null) {
+        if (null === $item) {
             return $this->json(['error' => 'Livre introuvable.'], Response::HTTP_NOT_FOUND);
         }
 
         $parsed = $this->googleBooksService->parseFetchedVolume($item);
-        if ($parsed === null) {
+        if (null === $parsed) {
             return $this->json(['error' => 'Livre introuvable.'], Response::HTTP_NOT_FOUND);
         }
 
@@ -182,7 +182,7 @@ final class BookController extends AbstractController
     public function show(int $id): JsonResponse
     {
         $livre = $this->livreRepository->find($id);
-        if ($livre === null) {
+        if (null === $livre) {
             return $this->json(['error' => 'Livre introuvable.'], Response::HTTP_NOT_FOUND);
         }
 
@@ -207,7 +207,7 @@ final class BookController extends AbstractController
         $avg = \count($notes) > 0 ? round(array_sum($notes) / \count($notes), 1) : null;
 
         $myLibrary = null;
-        if ($viewerUser !== null) {
+        if (null !== $viewerUser) {
             $entry = $this->bibliothequeRepository->findOneByUserAndLivre($viewerUser, $livre);
             if ($entry instanceof Bibliotheque) {
                 $myLibrary = $this->normalizer->bibliotheque($entry);
@@ -231,18 +231,18 @@ final class BookController extends AbstractController
     /**
      * @param list<Avis> $avisList
      *
-     * @return array<string, int>
+     * @return array{1: int, 2: int, 3: int, 4: int, 5: int}
      */
     private function buildNoteDistribution(array $avisList): array
     {
-        $dist = ['1' => 0, '2' => 0, '3' => 0, '4' => 0, '5' => 0];
+        $dist = [1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0];
         foreach ($avisList as $avis) {
             if (!$avis instanceof Avis) {
                 continue;
             }
             $n = $avis->getNote();
             if ($n >= 1 && $n <= 5) {
-                $dist[(string) $n]++;
+                ++$dist[$n];
             }
         }
 
@@ -259,7 +259,7 @@ final class BookController extends AbstractController
                     $related[] = $this->normalizer->livre($l);
                 }
             }
-        } elseif ($genre !== null && trim($genre) !== '') {
+        } elseif (null !== $genre && '' !== trim($genre)) {
             $candidates = $this->livreRepository->findBy(['genre' => $genre], ['id' => 'DESC'], 4);
             foreach ($candidates as $l) {
                 if ($l instanceof Livre) {

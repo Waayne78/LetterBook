@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { isAxiosError } from 'axios'
 import { api } from '../../api/client'
 import type { SocialRelationship } from '../../types/social'
+import { useToast } from '../ui/useToast'
 
 type FollowButtonProps = {
   userId: number
@@ -15,6 +16,7 @@ export function FollowButton({ userId, relationship, onChange }: FollowButtonPro
   const [busy, setBusy] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
+  const { toast } = useToast()
   const isFollowing = relationship === 'following' || relationship === 'friends'
 
   async function toggle() {
@@ -33,7 +35,7 @@ export function FollowButton({ userId, relationship, onChange }: FollowButtonPro
         navigate(`/login?redirect=${redirect}`)
         return
       }
-      throw err
+      toast({ title: 'Action impossible', description: 'Impossible de modifier cet abonnement.', variant: 'error' })
     } finally {
       setBusy(false)
     }

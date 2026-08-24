@@ -119,4 +119,3 @@ final class FeedTimelineServiceTest extends TestCase
         $ref->setValue($entry, $value);
     }
 }
-

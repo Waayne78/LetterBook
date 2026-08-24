@@ -46,4 +46,20 @@ class UserRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /** @return list<User> */
+    public function findInactiveSince(\DateTimeImmutable $cutoff): array
+    {
+        $users = $this->createQueryBuilder('u')
+            ->andWhere('u.suspended = false')
+            ->andWhere('COALESCE(u.lastLoginAt, u.dateCreation) < :cutoff')
+            ->setParameter('cutoff', $cutoff)
+            ->getQuery()
+            ->getResult();
+
+        return array_values(array_filter(
+            $users,
+            static fn (User $user): bool => !\in_array('ROLE_ADMIN', $user->getRoles(), true),
+        ));
+    }
 }

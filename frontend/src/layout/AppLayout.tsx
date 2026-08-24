@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router-dom'
+import { CookieConsentBanner } from '../components/CookieConsentBanner'
 import { Navbar } from '../components/Navbar'
 
 export function AppLayout() {
@@ -8,6 +9,7 @@ export function AppLayout() {
       <main className="mx-auto max-w-6xl px-4 py-8">
         <Outlet />
       </main>
+      <CookieConsentBanner />
     </div>
   )
 }

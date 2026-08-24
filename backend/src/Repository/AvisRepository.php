@@ -25,7 +25,7 @@ class AvisRepository extends ServiceEntityRepository
             ->orderBy('a.datePublication', 'DESC')
             ->setMaxResults($limit);
 
-        if ($before !== null) {
+        if (null !== $before) {
             $qb->andWhere('a.datePublication < :before')->setParameter('before', $before);
         }
 
@@ -39,7 +39,7 @@ class AvisRepository extends ServiceEntityRepository
      */
     public function findRecentForUserIds(array $userIds, int $limit = 40, ?\DateTimeImmutable $before = null): array
     {
-        if ($userIds === []) {
+        if ([] === $userIds) {
             return [];
         }
 
@@ -49,7 +49,7 @@ class AvisRepository extends ServiceEntityRepository
             ->orderBy('a.datePublication', 'DESC')
             ->setMaxResults($limit);
 
-        if ($before !== null) {
+        if (null !== $before) {
             $qb->andWhere('a.datePublication < :before')->setParameter('before', $before);
         }
 

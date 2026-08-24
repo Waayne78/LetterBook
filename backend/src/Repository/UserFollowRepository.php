@@ -28,7 +28,7 @@ class UserFollowRepository extends ServiceEntityRepository
 
     public function isFollowing(User $follower, User $following): bool
     {
-        return $this->findOneBetween($follower, $following) !== null;
+        return null !== $this->findOneBetween($follower, $following);
     }
 
     /** @return list<int> */

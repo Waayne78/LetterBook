@@ -27,7 +27,7 @@ final class NotificationController extends AbstractController
     public function list(): JsonResponse
     {
         $user = $this->requireUser();
-        if ($user === null) {
+        if (null === $user) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
 
@@ -55,7 +55,7 @@ final class NotificationController extends AbstractController
     public function markRead(int $id): JsonResponse
     {
         $user = $this->requireUser();
-        if ($user === null) {
+        if (null === $user) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
 
@@ -74,13 +74,13 @@ final class NotificationController extends AbstractController
     public function markAllRead(): JsonResponse
     {
         $user = $this->requireUser();
-        if ($user === null) {
+        if (null === $user) {
             return $this->json(['error' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
 
         $now = new \DateTimeImmutable();
         foreach ($this->notificationRepository->findRecentForUser($user, 200) as $n) {
-            if ($n instanceof Notification && $n->getReadAt() === null) {
+            if ($n instanceof Notification && null === $n->getReadAt()) {
                 $n->setReadAt($now);
             }
         }

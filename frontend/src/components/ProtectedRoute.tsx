@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 
 export function ProtectedRoute({
@@ -10,6 +10,7 @@ export function ProtectedRoute({
   adminOnly?: boolean
 }) {
   const { user, loading, token } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return (
@@ -20,7 +21,8 @@ export function ProtectedRoute({
   }
 
   if (!token || !user) {
-    return <Navigate to="/login" replace />
+    const redirect = encodeURIComponent(location.pathname + location.search)
+    return <Navigate to={`/login?redirect=${redirect}`} replace />
   }
 
   if (adminOnly && !user.roles.includes('ROLE_ADMIN')) {

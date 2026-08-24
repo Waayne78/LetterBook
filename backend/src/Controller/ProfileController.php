@@ -70,7 +70,7 @@ final class ProfileController extends AbstractController
             'derniersAvis' => $avisOut,
         ];
 
-        if ($viewerUser !== null && $viewerUser->getId() !== $user->getId()) {
+        if (null !== $viewerUser && $viewerUser->getId() !== $user->getId()) {
             $payload['social']['relationship'] = $this->socialService->relationship($viewerUser, $user);
         }
 

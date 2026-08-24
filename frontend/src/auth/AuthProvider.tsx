@@ -5,8 +5,14 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { api, getStoredToken, setAuthToken } from '../api/client'
+import { api, getStoredToken, setAuthToken, setStoredRefreshToken } from '../api/client'
+import { clearCsrfToken, getCsrfToken } from '../lib/csrf'
 import { AuthContext, type UserMe } from './auth-context'
+
+type LoginResponse = {
+  token: string
+  refresh_token?: string
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => getStoredToken())
@@ -27,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       setUser(null)
       sessionStorage.removeItem('lb_token')
+      setStoredRefreshToken(null)
       setAuthToken(null)
       setToken(null)
     } finally {
@@ -44,8 +51,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      const { data } = await api.post<{ token: string }>('/login', { email, password })
+      const csrfToken = await getCsrfToken()
+      const { data } = await api.post<LoginResponse>(
+        '/login',
+        { email, password },
+        { headers: { 'X-CSRF-Token': csrfToken } },
+      )
       sessionStorage.setItem('lb_token', data.token)
+      if (data.refresh_token) {
+        setStoredRefreshToken(data.refresh_token)
+      }
       setToken(data.token)
       setAuthToken(data.token)
       await refreshMe()
@@ -55,6 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     sessionStorage.removeItem('lb_token')
+    setStoredRefreshToken(null)
+    clearCsrfToken()
     setToken(null)
     setUser(null)
     setAuthToken(null)

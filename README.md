@@ -1,5 +1,7 @@
 # LetterBook
 
+[![LetterBook CI](https://github.com/Waayne78/LetterBook/actions/workflows/ci.yml/badge.svg)](https://github.com/Waayne78/LetterBook/actions/workflows/ci.yml)
+
 Application web communautaire pour lecteurs : bibliothèque personnelle, avis, fil d’actualité et administration.
 
 ## Architecture
@@ -41,6 +43,8 @@ Compte administrateur par défaut (après `app:seed-admin`) :
 - **Email** : `admin@letterbook.local`
 - **Mot de passe** : `AdminLetterBook!2026`
 
+Documentation : [`docs/DOCUMENTATION_TECHNIQUE.md`](docs/DOCUMENTATION_TECHNIQUE.md), [`docs/DOCUMENTATION_UTILISATEUR.md`](docs/DOCUMENTATION_UTILISATEUR.md).
+
 ### Frontend
 
 ```bash
@@ -71,10 +75,32 @@ php bin/phpunit
 ```bash
 cd frontend
 npm install
+npx playwright install
 npm run test:e2e
 ```
 
-Note: en environnement CI/local, installez les navigateurs Playwright (`npx playwright install`) si necessaire.
+### Intégration continue (GitHub Actions)
+
+Chaque push et chaque Pull Request sur `main` déclenche le workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) :
+
+1. **lint** — PHP CS Fixer (`--dry-run`) + PHPStan niveau 5  
+2. **phpunit** — ~47 tests unitaires et fonctionnels (SQLite)  
+3. **playwright** — smoke tests e2e (Chromium)
+
+En local, les mêmes commandes :
+
+```bash
+# Backend
+cd backend
+vendor/bin/php-cs-fixer fix --dry-run --diff
+php bin/console cache:warmup --env=dev
+vendor/bin/phpstan analyse
+php bin/phpunit
+
+# Frontend
+cd frontend
+npm run test:e2e
+```
 
 ## Variables d’environnement
 
